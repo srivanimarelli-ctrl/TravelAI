@@ -1,0 +1,25 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Environment Variables (Private Keys)
+.env
+Backend/.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large temporary caches
+.cache/
+*.log

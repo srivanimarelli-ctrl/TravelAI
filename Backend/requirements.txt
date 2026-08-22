@@ -1,0 +1,8 @@
+langchain
+langgraph
+langchain-ollama
+langchain-community
+pymongo
+chromadb
+httpx
+python-dotenv
