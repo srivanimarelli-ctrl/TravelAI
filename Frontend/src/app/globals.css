@@ -1,26 +1,70 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/primitives.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@layer base {
+  * {
+    border-color: var(--hairline);
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  html, body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--t-body);
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Display typography rules */
+  h1, h2, h3, .font-display {
+    font-family: var(--display);
+    font-weight: 400 !important; /* Instrument Serif only ships 400 */
+    letter-spacing: var(--tr-display);
+  }
+
+  /* Remove negative letter spacing override for Inter Tight */
+  .font-body {
+    font-family: var(--body);
+    letter-spacing: normal;
+  }
+
+  /* Numbers / Mono typography rules */
+  .font-mono, .mono {
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Base utility overrides to strictly align with design system */
+:root {
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-full: var(--radius);
+}
+
+/* Grain overlay background effect */
+.paper-grain {
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--ink-faint) 0.4px, transparent 0.4px);
+  background-size: 12px 12px;
+  background-position: 0 0;
+  opacity: 0.95;
+}
+
+/* Image scaling hover effect */
+.img-hover-scale {
+  overflow: hidden;
+}
+
+.img-hover-scale img {
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+.img-hover-scale:hover img {
+  transform: scale(1.03);
 }
