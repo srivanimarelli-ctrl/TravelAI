@@ -1,0 +1,694 @@
+══════════════════════════════════════════════════════════════
+                 GIT & GITHUB COMMAND CHEAT SHEET
+══════════════════════════════════════════════════════════════
+
+1. CLONE / SETUP
+──────────────────────────────────────────────────────────────
+
+Clone repository:
+git clone <repository-URL>
+
+Enter repository:
+cd <repository-name>
+
+Check remote:
+git remote -v
+
+Change remote URL:
+git remote set-url origin <repository-URL>
+
+
+2. STATUS / CHANGES
+──────────────────────────────────────────────────────────────
+
+Check all changes:
+git status
+
+Unstaged differences:
+git diff
+
+Staged differences:
+git diff --staged
+
+Compare two branches:
+git diff main..feature/branch
+
+Compare specific file:
+git diff main..feature/branch -- path/to/file
+
+
+3. BRANCHES
+──────────────────────────────────────────────────────────────
+
+Show local branches:
+git branch
+
+Show local + remote branches:
+git branch -a
+
+Show remote branches:
+git branch -r
+
+Create branch:
+git branch <branch-name>
+
+Create + switch:
+git switch -c <branch-name>
+
+Switch branch:
+git switch <branch-name>
+
+Old way to switch:
+git checkout <branch-name>
+
+Delete local branch:
+git branch -d <branch-name>
+
+
+4. ADD / COMMIT
+──────────────────────────────────────────────────────────────
+
+Add one file:
+git add <file>
+
+Add all files:
+git add .
+
+Commit:
+git commit -m "message"
+
+View history:
+git log
+
+Compact history:
+git log --oneline
+
+Latest commit:
+git log -1
+
+Show commit:
+git show <commit-id>
+
+
+5. AMEND LAST COMMIT
+──────────────────────────────────────────────────────────────
+
+Add forgotten file to previous commit:
+
+git add <file>
+git commit --amend --no-edit
+
+--no-edit = keep original commit message
+
+
+6. FETCH / PULL / PUSH
+──────────────────────────────────────────────────────────────
+
+Download remote changes WITHOUT merging:
+git fetch origin
+
+Fetch + merge remote main:
+git pull origin main
+
+Push main:
+git push origin main
+
+Push a new branch:
+git push -u origin <branch-name>
+
+
+REMEMBER:
+
+fetch = DOWNLOAD
+pull  = DOWNLOAD + INTEGRATE
+push  = UPLOAD
+
+
+7. MERGE
+──────────────────────────────────────────────────────────────
+
+Switch to main:
+git switch main
+
+Merge feature:
+git merge feature/tenant-registration
+
+After fixing conflicts:
+git add .
+git commit
+
+
+8. REBASE
+──────────────────────────────────────────────────────────────
+
+Switch to feature:
+git switch feature/tenant-registration
+
+Rebase onto main:
+git rebase main
+
+After fixing conflict:
+git add <file>
+git rebase --continue
+
+Cancel rebase:
+git rebase --abort
+
+
+REMEMBER:
+
+merge  = combine branches
+rebase = move feature commits onto another branch
+
+
+9. REVERT
+──────────────────────────────────────────────────────────────
+
+Safely undo a commit:
+git revert <commit-id>
+
+Revert creates a NEW commit.
+Original history is preserved.
+
+
+10. RESET
+──────────────────────────────────────────────────────────────
+
+Undo last commit + KEEP changes STAGED:
+git reset --soft HEAD~1
+
+Undo last commit + KEEP changes UNSTAGED:
+git reset --mixed HEAD~1
+
+Undo last commit + DELETE changes:
+git reset --hard HEAD~1
+
+⚠️ Be careful with --hard.
+
+
+11. STASH
+──────────────────────────────────────────────────────────────
+
+Save unfinished changes:
+git stash
+
+View stashes:
+git stash list
+
+Restore latest stash + remove it:
+git stash pop
+
+Restore stash but keep it:
+git stash apply
+
+Delete a stash:
+git stash drop
+
+
+12. REMOVE FILE FROM GIT BUT KEEP LOCALLY
+──────────────────────────────────────────────────────────────
+
+git rm --cached <file>
+
+Example:
+git rm --cached src/main/resources/db-config.env
+
+Add to .gitignore if needed:
+echo "src/main/resources/db-config.env" >> .gitignore
+
+
+13. HISTORY / GRAPH
+──────────────────────────────────────────────────────────────
+
+Full history:
+git log
+
+Compact history:
+git log --oneline
+
+Visual branch timeline:
+git log --oneline --graph --all
+
+Latest commit:
+git log -1
+
+Show commit details:
+git show <commit-id>
+
+
+14. BRANCH INFORMATION
+──────────────────────────────────────────────────────────────
+
+Current branch:
+git status
+
+Local branches:
+git branch
+
+Local + remote:
+git branch -a
+
+Remote only:
+git branch -r
+
+Branches + latest commits:
+git branch -av
+
+
+15. GITHUB REMOTE
+──────────────────────────────────────────────────────────────
+
+Check remote:
+git remote -v
+
+Add remote:
+git remote add origin <URL>
+
+Change remote:
+git remote set-url origin <URL>
+
+Fetch:
+git fetch origin
+
+Push:
+git push origin main
+
+
+══════════════════════════════════════════════════════════════
+              20 LAB EXAM QUESTIONS — ANSWERS
+══════════════════════════════════════════════════════════════
+
+Q1. Set up codebase locally
+────────────────────────────
+git clone <repository-URL>
+
+
+Q2. Verify remote connections
+─────────────────────────────
+git remote -v
+
+
+Q3. Inspect staged, unstaged & untracked changes
+─────────────────────────────────────────────────
+git status
+
+
+Q4. Create + switch to feature/tenant-registration
+────────────────────────────────────────────────────
+git switch -c feature/tenant-registration
+
+
+Q5. Show all local + remote branches
+─────────────────────────────────────
+git branch -a
+
+
+Q6. Commit only TenantServlet.java
+───────────────────────────────────
+git add src/main/java/com/apartment/servlet/TenantServlet.java
+
+git commit -m "Add tenant registration servlet"
+
+
+Q7. Add web.xml to previous commit
+    without changing original message
+─────────────────────────────────────────────────
+git add src/main/webapp/WEB-INF/web.xml
+
+git commit --amend --no-edit
+
+
+Q8. Retrieve remote updates without
+    modifying local working files
+────────────────────────────────────────
+git fetch origin
+
+
+Q9. Incorporate remote main into current branch
+─────────────────────────────────────────────────
+git pull origin main
+
+
+Q10. Rebase feature onto updated main
+──────────────────────────────────────
+git rebase main
+
+
+Q11. Cancel rebase
+──────────────────
+git rebase --abort
+
+
+Q12. Safely undo faulty commit
+    while preserving history
+────────────────────────────────────────
+git revert <commit-id>
+
+
+Q13. Undo last commit but keep
+    changes STAGED
+──────────────────────────────────────
+git reset --soft HEAD~1
+
+
+Q14. Remove file from Git but keep
+    it on local computer
+──────────────────────────────────────
+git rm --cached src/main/resources/db-config.env
+
+
+Q15. Save unfinished changes
+    without creating a commit
+────────────────────────────────────────
+git stash
+
+
+Q16. View + restore saved work
+──────────────────────────────
+git stash list
+
+git stash pop
+
+
+Q17. Compare index.jsp between
+    feature and main
+────────────────────────────────────────
+git diff main..feature/tenant-registration -- src/main/webapp/index.jsp
+
+
+Q18. Compact visual timeline
+────────────────────────────
+git log --oneline --graph --all
+
+
+Q19. Merge feature into main
+────────────────────────────
+git switch main
+
+git merge feature/tenant-registration
+
+
+Q20. Push main + verify
+───────────────────────
+git push origin main
+
+git status
+
+Stronger verification:
+git log -1
+git log -1 origin/main
+
+
+══════════════════════════════════════════════════════════════
+                    ⭐ MUST MEMORIZE ⭐
+══════════════════════════════════════════════════════════════
+
+git clone <URL>                    → Get repository
+
+git remote -v                      → Check remote
+
+git status                         → Check changes
+
+git branch -a                      → See all branches
+
+git switch -c <branch>             → Create + switch
+
+git add <file>                     → Stage file
+
+git add .                          → Stage everything
+
+git commit -m "message"            → Commit
+
+git fetch origin                   → Download only
+
+git pull origin main               → Fetch + integrate
+
+git push origin main               → Upload
+
+git merge <branch>                 → Merge
+
+git rebase main                    → Rebase
+
+git rebase --abort                 → Cancel rebase
+
+git revert <commit>                → Safely undo commit
+
+git reset --soft HEAD~1             → Undo commit, keep staged
+
+git rm --cached <file>             → Remove from Git, keep locally
+
+git stash                           → Temporarily save work
+
+git stash list                      → View saved work
+
+git stash pop                       → Restore saved work
+
+git diff main..feature -- <file>   → Compare branches
+
+git log --oneline --graph --all    → Visual history
+
+
+══════════════════════════════════════════════════════════════
+                    📝 VIM REMINDER
+══════════════════════════════════════════════════════════════
+
+When Git opens Vim for a commit message:
+
+Press:
+Esc
+
+Type:
+:wq
+
+Press:
+Enter
+
+→ Save and exit Vim.
+
+
+══════════════════════════════════════════════════════════════
+                    🔥 QUICK MEMORY
+══════════════════════════════════════════════════════════════
+
+CLONE  → get repository
+STATUS → check changes
+BRANCH → manage branches
+ADD    → stage
+COMMIT → save history
+FETCH  → download
+PULL   → fetch + integrate
+PUSH   → upload
+MERGE  → combine
+REBASE → move commits
+REVERT → safely undo
+RESET  → move HEAD back
+STASH  → temporarily save
+DIFF   → compare
+LOG    → history
+══════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════
+                    GIT CONFIGURATION
+══════════════════════════════════════════════════════════════
+
+1. Check Git username
+──────────────────────
+git config --global user.name
+
+
+2. Set Git username
+───────────────────
+git config --global user.name "Your Name"
+
+
+3. Check Git email
+──────────────────
+git config --global user.email
+
+
+4. Set Git email
+────────────────
+git config --global user.email "your-email@example.com"
+
+
+5. View all Git configuration
+──────────────────────────────
+git config --list
+
+
+6. View global configuration
+───────────────────────────
+git config --global --list
+
+
+7. Set default branch to main
+─────────────────────────────
+git config --global init.defaultBranch main
+
+
+8. Check Git version
+────────────────────
+git --version
+
+
+══════════════════════════════════════════════════════════════
+                     SSH KEY CREATION
+══════════════════════════════════════════════════════════════
+
+1. Generate SSH key
+───────────────────
+ssh-keygen -t ed25519 -C "your-email@example.com"
+
+
+2. When asked:
+
+Enter file in which to save the key:
+Press ENTER
+
+Enter passphrase:
+You can enter a password OR press ENTER for no passphrase.
+
+Enter same passphrase again:
+Enter it again OR press ENTER.
+
+
+3. Start SSH Agent
+───────────────────
+eval "$(ssh-agent -s)"
+
+
+4. Add SSH private key to agent
+───────────────────────────────
+ssh-add ~/.ssh/id_ed25519
+
+
+5. Display your PUBLIC key
+───────────────────────────
+cat ~/.ssh/id_ed25519.pub
+
+
+6. Test GitHub SSH connection
+─────────────────────────────
+ssh -T git@github.com
+
+
+Expected result is similar to:
+
+Hi <username>! You've successfully authenticated...
+
+
+══════════════════════════════════════════════════════════════
+                  ADD SSH KEY TO GITHUB
+══════════════════════════════════════════════════════════════
+
+GitHub:
+
+Profile picture
+→ Settings
+→ SSH and GPG keys
+→ New SSH key
+
+Title:
+College Lab Computer
+
+Key type:
+Authentication Key
+
+Key:
+Paste the output of:
+
+cat ~/.ssh/id_ed25519.pub
+
+Then:
+→ Add SSH key
+
+
+══════════════════════════════════════════════════════════════
+                 USE SSH WITH GIT
+══════════════════════════════════════════════════════════════
+
+Clone using SSH:
+
+git clone git@github.com:USERNAME/REPOSITORY.git
+
+
+Change existing repository from HTTPS to SSH:
+
+git remote set-url origin git@github.com:USERNAME/REPOSITORY.git
+
+
+Check:
+
+git remote -v
+
+
+Expected:
+
+origin  git@github.com:USERNAME/REPOSITORY.git (fetch)
+origin  git@github.com:USERNAME/REPOSITORY.git (push)
+
+
+══════════════════════════════════════════════════════════════
+                  HTTPS vs SSH
+══════════════════════════════════════════════════════════════
+
+HTTPS:
+git clone https://github.com/USERNAME/REPOSITORY.git
+
+SSH:
+git clone git@github.com:USERNAME/REPOSITORY.git
+
+
+SSH is useful because after setting up the key,
+you don't normally need to enter your GitHub password
+for every Git operation.
+
+
+══════════════════════════════════════════════════════════════
+                    ⭐ EXAM MEMORY
+══════════════════════════════════════════════════════════════
+
+CONFIG:
+
+git config --global user.name "Name"
+
+git config --global user.email "email"
+
+git config --list
+
+
+SSH:
+
+ssh-keygen -t ed25519 -C "email"
+
+eval "$(ssh-agent -s)"
+
+ssh-add ~/.ssh/id_ed25519
+
+cat ~/.ssh/id_ed25519.pub
+
+ssh -T git@github.com
+
+
+GITHUB:
+
+Settings
+→ SSH and GPG keys
+→ New SSH key
+→ Paste PUBLIC key
+→ Add SSH key
+
+
+══════════════════════════════════════════════════════════════
+                 ⚠️ VERY IMPORTANT
+══════════════════════════════════════════════════════════════
+
+PUBLIC KEY:
+~/.ssh/id_ed25519.pub
+
+✅ This is the one you paste into GitHub.
+
+PRIVATE KEY:
+~/.ssh/id_ed25519
+
+❌ NEVER share this with anyone.
+══════════════════════════════════════════════════════════════
