@@ -2,6 +2,7 @@ import json
 from app.ai.llm import llm
 from app.ai.orchestrator.state import TravelState
 from langchain_core.prompts import ChatPromptTemplate
+from app.services.slot_extraction_service import normalize_currency_and_numbers
 
 PARSER_PROMPT = ChatPromptTemplate.from_messages([
     (
@@ -19,29 +20,34 @@ PARSER_PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 def parser_node(state: TravelState) -> dict:
-    # If we already have the variables (Form path), skip parsing
+    # If we already have the variables (Form/Bridge path), skip parsing
     if state.get("destination") and state.get("days") and state.get("budget"):
-        print("--- PARSER AGENT: Skip (Form input already structured) ---")
+        print("--- PARSER AGENT: Skip (Input already structured) ---")
         return {"completed_steps": state.get("completed_steps", []) + ["parser"]}
         
     print(f"--- PARSER AGENT: Extracting from message: '{state.get('user_message')}' ---")
     
-    prompt_val = PARSER_PROMPT.format_messages(user_message=state["user_message"])
+    user_msg = state.get("user_message", "")
+    prompt_val = PARSER_PROMPT.format_messages(user_message=user_msg)
     response = llm.invoke(prompt_val)
     
     # Parse the JSON response
     try:
         data = json.loads(response.content.strip())
+        
+        # Apply currency regex helper
+        currency_data = normalize_currency_and_numbers(user_msg)
+        budget = currency_data.get("budget") or float(data.get("budget", 500.0))
+
         return {
             "destination": data.get("destination"),
             "days": int(data.get("days", 3)),
-            "budget": float(data.get("budget", 500.0)),
+            "budget": float(budget),
             "preferences": data.get("preferences"),
             "completed_steps": state.get("completed_steps", []) + ["parser"]
         }
     except Exception as e:
         print(f"Error parsing Qwen response: {e}")
-        # Fail-safe defaults
         return {
             "destination": "Unknown",
             "days": 3,

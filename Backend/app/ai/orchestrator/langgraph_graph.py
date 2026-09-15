@@ -41,7 +41,8 @@ workflow.add_edge("planner", "weather")
 workflow.add_edge("planner", "attractions")
 workflow.add_edge("planner", "restaurants")
 
-# All parallel agents join back at the Budget Auditor node
+# All par
+# allel agents join back at the Budget Auditor node
 workflow.add_edge("flights", "budget")
 workflow.add_edge("hotels", "budget")
 workflow.add_edge("weather", "budget")

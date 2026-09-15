@@ -1,0 +1,65 @@
+from fastapi import APIRouter, HTTPException
+from typing import List
+from app.schemas.chat import (
+    ChatMessageRequest,
+    ChatMessageResponse,
+    ConversationSummaryResponse,
+    ConversationDetailResponse
+)
+from app.services.chat_service import process_chat_message
+from app.services.conversation_service import (
+    get_conversation,
+    get_conversation_messages,
+    list_conversations,
+    delete_conversation
+)
+
+router = APIRouter(prefix="/api/chat", tags=["Chat"])
+
+@router.post("/message", response_model=ChatMessageResponse)
+def send_chat_message(request: ChatMessageRequest):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message content cannot be empty.")
+    
+    try:
+        response_data = process_chat_message(
+            conversation_id=request.conversation_id,
+            user_message=request.message.strip()
+        )
+        return response_data
+    except Exception as e:
+        print(f"Error processing chat message: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process chat message: {str(e)}")
+
+@router.get("/conversations", response_model=List[ConversationSummaryResponse])
+def get_conversations_list():
+    try:
+        convs = list_conversations()
+        return convs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list conversations: {str(e)}")
+
+@router.get("/conversations/{id}", response_model=ConversationDetailResponse)
+def get_conversation_detail(id: str):
+    conv = get_conversation(id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    messages = get_conversation_messages(id)
+    return {
+        "conversation_id": conv.conversation_id,
+        "title": conv.title,
+        "status": conv.status,
+        "travel_context": conv.travel_context.model_dump(),
+        "current_trip_id": conv.current_trip_id,
+        "messages": messages,
+        "created_at": conv.created_at,
+        "updated_at": conv.updated_at
+    }
+
+@router.delete("/conversations/{id}")
+def remove_conversation(id: str):
+    success = delete_conversation(id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"status": "deleted", "conversation_id": id}
