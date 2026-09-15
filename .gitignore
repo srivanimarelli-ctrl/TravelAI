@@ -23,3 +23,7 @@ Thumbs.db
 # Large temporary caches
 .cache/
 *.log
+node_modules/
+.vite/
+.next/
+dist/
