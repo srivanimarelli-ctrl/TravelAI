@@ -41,6 +41,12 @@ def get_conversation(conversation_id: str) -> Optional[ConversationModel]:
         return None
     # Remove _id from dict if present
     doc.pop("_id", None)
+    tc = doc.get("travel_context")
+    if isinstance(tc, dict):
+        dest = tc.get("destination")
+        if isinstance(dest, list):
+            doc["travel_context"] = dict(tc)
+            doc["travel_context"]["destination"] = ", ".join(str(d) for d in dest if d)
     return ConversationModel(**doc)
 
 def get_or_create_conversation(conversation_id: Optional[str] = None) -> ConversationModel:
@@ -62,7 +68,12 @@ def update_travel_context(conversation_id: str, new_context: Dict[str, Any], cur
     # Auto-update title if destination is set
     dest = new_context.get("destination")
     if dest:
-        update_fields["title"] = f"Trip to {dest.title()}"
+        if isinstance(dest, list):
+            dest_title = ", ".join(str(d).title() for d in dest if d)
+            if dest_title:
+                update_fields["title"] = f"Trip to {dest_title}"
+        elif isinstance(dest, str):
+            update_fields["title"] = f"Trip to {dest.title()}"
 
     conversations_col.update_one(
         {"conversation_id": conversation_id},

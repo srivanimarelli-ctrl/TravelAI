@@ -47,17 +47,74 @@ ANALYZER_PROMPT = ChatPromptTemplate.from_messages([
     ("human", "{user_message}")
 ])
 
+def extract_context_tags(text: str) -> Dict[str, Any]:
+    """
+    Extracts structured slot values from [Context: ...] metadata tags and explicit text patterns.
+    """
+    result = {}
+    
+    # 1. Parse [Context: ...] tags
+    context_match = re.search(r'\[Context:\s*(.*?)\]', text, re.IGNORECASE)
+    if context_match:
+        tag_str = context_match.group(1)
+        for part in tag_str.split('|'):
+            if ':' in part:
+                k, v = part.split(':', 1)
+                k = k.strip().lower()
+                v = v.strip()
+                if 'origin' in k:
+                    result['origin'] = v
+                elif 'destination' in k:
+                    result['destination'] = v
+                elif 'duration' in k:
+                    dm = re.search(r'(\d+)', v)
+                    if dm:
+                        result['days'] = int(dm.group(1))
+                elif 'dates' in k:
+                    dates_m = re.search(r'([^\s]+)\s*(?:to|–|-)\s*([^\s]+)', v)
+                    if dates_m:
+                        result['start_date'] = dates_m.group(1).strip()
+                        result['end_date'] = dates_m.group(2).strip()
+                elif 'budget' in k:
+                    bm = re.search(r'([\d\.]+)', v)
+                    if bm:
+                        result['budget'] = float(bm.group(1))
+                    if 'inr' in v.lower() or '₹' in v:
+                        result['currency'] = 'INR'
+                    elif 'usd' in v.lower() or '$' in v:
+                        result['currency'] = 'USD'
+                elif 'travelers' in k or 'pax' in k or 'adults' in k:
+                    tm = re.search(r'(\d+)', v)
+                    if tm:
+                        result['travelers'] = int(tm.group(1))
+                elif 'interests' in k:
+                    result['preferences'] = [p.strip() for p in v.split(',') if p.strip()]
+
+    # 2. Parse date ranges in text (e.g. "sept-26 to sept -30 2026", "2026-09-26 to 2026-09-30", "12 Jan to 21 Jan")
+    lower = text.lower()
+    date_range_match = re.search(r'(?:when|dates?|from)?\s*([a-z]{3,9}[\s\-]*\d{1,2}(?:[\s,]*\d{4})?|\d{4}-\d{2}-\d{2})\s*(?:to|–|-)\s*([a-z]{3,9}[\s\-]*\d{1,2}(?:[\s,]*\d{4})?|\d{4}-\d{2}-\d{2})', lower)
+    if date_range_match and "start_date" not in result:
+        result["start_date"] = date_range_match.group(1).strip()
+        result["end_date"] = date_range_match.group(2).strip()
+
+    # 3. Parse explicit travelers
+    pax_m = re.search(r'(\d+)\s*(?:adults?|travelers?|travellers?|members?|people|pax)', lower)
+    if pax_m and "travelers" not in result:
+        result["travelers"] = int(pax_m.group(1))
+
+    return result
+
 def normalize_currency_and_numbers(text: str) -> Dict[str, Any]:
     """
     Python fallback parser to extract explicit currency patterns if LLM misses them.
     Handles INR (₹, lakh, k, rupees) and USD ($).
     """
-    result = {}
+    result = extract_context_tags(text)
     lower = text.lower()
     
     # 1 Lakh = 100,000
     lakh_match = re.search(r'([₹\d\.]+)\s*(?:lakh|lac)', lower)
-    if lakh_match:
+    if lakh_match and "budget" not in result:
         val_str = lakh_match.group(1).replace('₹', '').strip()
         try:
             val = float(val_str) * 100000

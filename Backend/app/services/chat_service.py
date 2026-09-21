@@ -42,9 +42,13 @@ MODIFIER_PROMPT = ChatPromptTemplate.from_messages([
 
 def build_travel_state_from_context(context: Dict[str, Any]) -> Dict[str, Any]:
     dest = context.get("destination") or "Goa"
+    origin = context.get("origin") or "Hyderabad"
     days = int(context.get("days") or 3)
+    start_date = context.get("start_date")
+    end_date = context.get("end_date")
     budget_val = context.get("budget")
     currency = context.get("currency") or "INR"
+    travelers = int(context.get("travelers") or context.get("adults") or 2)
     budget_mode = context.get("budget_mode") or "FLEXIBLE"
     travel_style = context.get("travel_style") or "STANDARD"
     
@@ -69,14 +73,18 @@ def build_travel_state_from_context(context: Dict[str, Any]) -> Dict[str, Any]:
         if travel_style == "LUXURY" or budget_mode in ["LUXURY", "NO_LIMIT"]:
             budget_val = 150000.0 if currency == "INR" else 2000.0
         elif travel_style == "BUDGET" or budget_mode == "ECONOMY":
-            budget_val = 15000.0 if currency == "INR" else 250.0
+            budget_val = 20000.0 if currency == "INR" else 300.0
         else:
-            budget_val = 40000.0 if currency == "INR" else 500.0
+            budget_val = 50000.0 if currency == "INR" else 750.0
 
     return {
-        "user_message": f"Plan a {days}-day trip to {dest}. {preferences_str}",
+        "user_message": f"Plan a {days}-day trip from {origin} to {dest} for {travelers} travelers. {preferences_str}",
         "destination": dest,
+        "origin": origin,
         "days": days,
+        "start_date": start_date,
+        "end_date": end_date,
+        "travelers": travelers,
         "budget": budget_val,
         "currency": currency,
         "budget_mode": budget_mode,
@@ -198,12 +206,21 @@ def process_chat_message(conversation_id: Optional[str], user_message: str) -> D
             }
 
         # Prepare trip data structure
+        resolved_budget = float(final_state.get("budget") or current_context.get("budget") or 50000.0)
+        resolved_travelers = int(final_state.get("travelers") or current_context.get("travelers") or current_context.get("adults") or 2)
         trip_data = {
             "user_message": user_message,
             "destination": final_state.get("destination") or dest,
+            "origin": final_state.get("origin") or current_context.get("origin") or "Hyderabad",
             "days": int(final_state.get("days") or days),
-            "budget": float(final_state.get("budget", 500.0)),
+            "start_date": final_state.get("start_date") or current_context.get("start_date"),
+            "end_date": final_state.get("end_date") or current_context.get("end_date"),
+            "travelers": resolved_travelers,
+            "travelersCount": resolved_travelers,
+            "budget": resolved_budget,
             "currency": current_context.get("currency") or "INR",
+            "travel_style": current_context.get("travel_style") or "STANDARD",
+            "budget_mode": current_context.get("budget_mode") or "FLEXIBLE",
             "preferences": final_state.get("preferences"),
             "planner_draft": final_state.get("planner_draft") or "Itinerary created",
             "flights": final_state.get("flights") or [],
@@ -213,6 +230,7 @@ def process_chat_message(conversation_id: Optional[str], user_message: str) -> D
             "restaurants": final_state.get("restaurants") or [],
             "route_details": final_state.get("route_details") or {},
             "budget_breakdown": final_state.get("budget_breakdown") or {},
+            "travelContext": current_context,
             "created_at": datetime.utcnow()
         }
 
