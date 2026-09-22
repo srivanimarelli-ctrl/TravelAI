@@ -87,12 +87,30 @@ export async function apiFetch<T>(
     if (endpoint.includes('/api/chat/message')) {
       console.log(`[CHAT DEBUG] apiFetch: initiating fetch to ${url}`);
     }
+
+    // Attach user auth & identity headers if present in localStorage
+    const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem('travelai_user') : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('travelai_token') : null;
+    const authHeaders: Record<string, string> = {};
+    if (storedUserStr) {
+      try {
+        const u = JSON.parse(storedUserStr);
+        if (u && (u.id || u.email)) {
+          authHeaders['x-user-id'] = u.id || u.email;
+        }
+      } catch {}
+    }
+    if (storedToken) {
+      authHeaders['Authorization'] = `Bearer ${storedToken}`;
+    }
+
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...authHeaders,
         ...(options.headers || {}),
       },
     });

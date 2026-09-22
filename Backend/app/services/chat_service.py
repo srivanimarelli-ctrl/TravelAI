@@ -12,7 +12,11 @@ from app.services.conversation_service import (
     add_message,
     get_conversation_messages
 )
-from app.services.slot_extraction_service import analyze_user_message, merge_travel_context
+from app.services.slot_extraction_service import (
+    analyze_user_message,
+    merge_travel_context,
+    calculate_days_from_dates
+)
 from app.services.qa_service import handle_travel_qa
 
 ACKNOWLEDGEMENT_PROMPT = ChatPromptTemplate.from_messages([
@@ -95,11 +99,11 @@ def build_travel_state_from_context(context: Dict[str, Any]) -> Dict[str, Any]:
         "error_logs": []
     }
 
-def process_chat_message(conversation_id: Optional[str], user_message: str) -> Dict[str, Any]:
-    print(f"\n--- CHAT SERVICE: Processing chat turn for conversation: '{conversation_id}' ---")
+def process_chat_message(conversation_id: Optional[str], user_message: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    print(f"\n--- CHAT SERVICE: Processing chat turn for conversation: '{conversation_id}' (User: {user_id}) ---")
     
-    # 1. Fetch or create conversation
-    conv = get_or_create_conversation(conversation_id)
+    # 1. Fetch or create conversation with user_id
+    conv = get_or_create_conversation(conversation_id, user_id=user_id)
     conv_id = conv.conversation_id
     current_context = conv.travel_context.model_dump()
     has_trip = bool(conv.current_trip_id or current_context.get("current_trip_id"))
@@ -129,10 +133,14 @@ def process_chat_message(conversation_id: Optional[str], user_message: str) -> D
     
     print(f"--- CHAT SERVICE: Resolved Intent: {intent} (Slots: {slots}) ---")
 
+    # Always merge extracted slots into travel_context regardless of intent
+    if slots:
+        current_context = merge_travel_context(current_context, slots)
+        update_travel_context(conv_id, current_context)
+
     # 5. Execute Intent Logic
     if intent == "UPDATE_CONTEXT":
-        updated_context = merge_travel_context(current_context, slots)
-        update_travel_context(conv_id, updated_context)
+        updated_context = current_context
 
         # Generate conversational acknowledgment
         prompt_val = ACKNOWLEDGEMENT_PROMPT.format_messages(
@@ -171,6 +179,14 @@ def process_chat_message(conversation_id: Optional[str], user_message: str) -> D
     elif intent == "GENERATE_ITINERARY":
         dest = current_context.get("destination")
         days = current_context.get("days")
+
+        # Fallback calculation if days is missing but start_date and end_date are available
+        if not days and current_context.get("start_date") and current_context.get("end_date"):
+            computed_days = calculate_days_from_dates(current_context["start_date"], current_context["end_date"])
+            if computed_days:
+                days = computed_days
+                current_context["days"] = days
+                update_travel_context(conv_id, current_context)
 
         # Check required slots
         if not dest or not days:
@@ -233,6 +249,8 @@ def process_chat_message(conversation_id: Optional[str], user_message: str) -> D
             "travelContext": current_context,
             "created_at": datetime.utcnow()
         }
+        if user_id:
+            trip_data["user_id"] = user_id
 
         # Save to MongoDB 'trips'
         try:

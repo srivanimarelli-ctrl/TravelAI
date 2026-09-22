@@ -47,6 +47,22 @@ ANALYZER_PROMPT = ChatPromptTemplate.from_messages([
     ("human", "{user_message}")
 ])
 
+def calculate_days_from_dates(start_str: str, end_str: str) -> Optional[int]:
+    if not start_str or not end_str:
+        return None
+    try:
+        from dateutil import parser
+        d1 = parser.parse(start_str, fuzzy=True)
+        d2 = parser.parse(end_str, fuzzy=True)
+        delta = (d2 - d1).days
+        if delta > 0:
+            return delta + 1
+        elif delta == 0:
+            return 1
+    except Exception:
+        pass
+    return None
+
 def extract_context_tags(text: str) -> Dict[str, Any]:
     """
     Extracts structured slot values from [Context: ...] metadata tags and explicit text patterns.
@@ -63,18 +79,40 @@ def extract_context_tags(text: str) -> Dict[str, Any]:
                 k = k.strip().lower()
                 v = v.strip()
                 if 'origin' in k:
-                    result['origin'] = v
-                elif 'destination' in k:
-                    result['destination'] = v
-                elif 'duration' in k:
+                    if v and v.lower() != 'not set':
+                        result['origin'] = v
+                elif 'destination' in k or 'where' in k:
+                    if v and v.lower() != 'not set':
+                        dest_val = v
+                        if '->' in dest_val:
+                            parts = dest_val.split('->')
+                            if len(parts) >= 2:
+                                if not result.get('origin') and parts[0].strip():
+                                    result['origin'] = parts[0].strip()
+                                dest_val = parts[1].strip()
+                        dest_val = re.sub(r'[\.\s]+$', '', dest_val)
+                        if dest_val:
+                            result['destination'] = dest_val
+                elif 'duration' in k or 'days' in k:
                     dm = re.search(r'(\d+)', v)
                     if dm:
                         result['days'] = int(dm.group(1))
-                elif 'dates' in k:
-                    dates_m = re.search(r'([^\s]+)\s*(?:to|–|-)\s*([^\s]+)', v)
+                elif 'dates' in k or 'when' in k:
+                    # Check if duration in days is in dates string, e.g. "(5 days)"
+                    days_m = re.search(r'(\d+)\s*days?', v, re.IGNORECASE)
+                    if days_m:
+                        result['days'] = int(days_m.group(1))
+                    
+                    # Split range e.g. "28 Sep 2026 to 3 Oct 2026 (5 days)" or "28 Sep 2026 - 3 Oct 2026"
+                    clean_dates = re.sub(r'\(.*?\)', '', v).strip()
+                    dates_m = re.search(r'(.+?)\s*(?:to|–|-)\s*(.+)', clean_dates, re.IGNORECASE)
                     if dates_m:
                         result['start_date'] = dates_m.group(1).strip()
                         result['end_date'] = dates_m.group(2).strip()
+                        if 'days' not in result:
+                            computed_days = calculate_days_from_dates(result['start_date'], result['end_date'])
+                            if computed_days:
+                                result['days'] = computed_days
                 elif 'budget' in k:
                     bm = re.search(r'([\d\.]+)', v)
                     if bm:
@@ -87,8 +125,9 @@ def extract_context_tags(text: str) -> Dict[str, Any]:
                     tm = re.search(r'(\d+)', v)
                     if tm:
                         result['travelers'] = int(tm.group(1))
-                elif 'interests' in k:
-                    result['preferences'] = [p.strip() for p in v.split(',') if p.strip()]
+                elif 'interests' in k or 'preferences' in k:
+                    if v and v.lower() != 'none':
+                        result['preferences'] = [p.strip() for p in v.split(',') if p.strip()]
 
     # 2. Parse date ranges in text (e.g. "sept-26 to sept -30 2026", "2026-09-26 to 2026-09-30", "12 Jan to 21 Jan")
     lower = text.lower()
@@ -96,8 +135,17 @@ def extract_context_tags(text: str) -> Dict[str, Any]:
     if date_range_match and "start_date" not in result:
         result["start_date"] = date_range_match.group(1).strip()
         result["end_date"] = date_range_match.group(2).strip()
+        if "days" not in result:
+            computed_days = calculate_days_from_dates(result["start_date"], result["end_date"])
+            if computed_days:
+                result["days"] = computed_days
 
-    # 3. Parse explicit travelers
+    # 3. Parse explicit duration e.g. "5 days", "3-day trip"
+    days_text_match = re.search(r'(\d+)\s*(?:days?|day)\b', lower)
+    if days_text_match and "days" not in result:
+        result["days"] = int(days_text_match.group(1))
+
+    # 4. Parse explicit travelers
     pax_m = re.search(r'(\d+)\s*(?:adults?|travelers?|travellers?|members?|people|pax)', lower)
     if pax_m and "travelers" not in result:
         result["travelers"] = int(pax_m.group(1))

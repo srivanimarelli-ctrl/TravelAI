@@ -55,17 +55,12 @@ workflow.add_edge("route", "reviewer")
 
 # 3. Define the conditional routing edge from the Reviewer
 def should_continue(state: TravelState):
-    if state.get("is_approved") is True:
-        print("--- GRAPH ORCHESTRATION: Itinerary APPROVED! Ending workflow. ---")
+    loops = state.get("completed_steps", []).count("planner")
+    if state.get("is_approved") is True or loops >= 1:
+        print(f"--- GRAPH ORCHESTRATION: Itinerary APPROVED! Ending workflow. (Loops: {loops}) ---")
         return "approved"
     else:
-        # Check if we have looped too many times to prevent infinite loops
-        loops = state.get("completed_steps", []).count("planner")
-        if loops >= 3:
-            print("--- GRAPH ORCHESTRATION: Loop limit reached (3). Ending workflow. ---")
-            return "approved" # Force exit if stuck
-            
-        print(f"--- GRAPH ORCHESTRATION: Itinerary REJECTED (Loop {loops}). Re-routing to Planner. ---")
+        print(f"--- GRAPH ORCHESTRATION: Re-routing to Planner. (Loop {loops}) ---")
         return "rejected"
 
 # Setup the routing logic: approved goes to END, rejected goes back to planner

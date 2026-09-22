@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 from app.api.trips import router as trips_router
 from app.api.chat import router as chat_router
+from app.api.auth import router as auth_router
 
 # Load environment variables from .env
 load_dotenv()
@@ -29,6 +30,7 @@ travel_ai.add_middleware(
 # Register API routes
 travel_ai.include_router(trips_router, prefix="/api/trips")
 travel_ai.include_router(chat_router)
+travel_ai.include_router(auth_router, prefix="/api/auth")
 
 @travel_ai.get("/")
 def read_root():

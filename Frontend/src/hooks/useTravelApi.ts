@@ -71,42 +71,21 @@ export function useTravelApi() {
   const [isLoadingConversations, setIsLoadingConversations] = useState<boolean>(true);
 
   // Active Trip and Raw Trip History from GET /api/trips/history
-  const [rawTripsHistory, setRawTripsHistory] = useState<any[]>(PRESET_TRIPS);
-  const [activeTrip, setActiveTrip] = useState<any>(PRESET_TRIPS[0]);
-  const [activeTripId, setActiveTripIdState] = useState<string>(PRESET_TRIPS[0].id);
+  const [rawTripsHistory, setRawTripsHistory] = useState<any[]>([]);
+  const [activeTrip, setActiveTrip] = useState<any>(null);
+  const [activeTripId, setActiveTripIdState] = useState<string>('');
 
   // Core Trip & Entity Data (Synchronized from activeTrip)
-  const [trip, setTrip] = useState<TripSummary | null>(INITIAL_TRIP);
-  const [days, setDays] = useState<ItineraryDay[]>(INITIAL_ITINERARY_DAYS);
-  const [flights, setFlights] = useState<FlightOption[]>(INITIAL_FLIGHTS);
-  const [hotels, setHotels] = useState<HotelOption[]>(INITIAL_HOTELS);
-  const [weather, setWeather] = useState<WeatherCondition | null>(INITIAL_WEATHER);
-  const [budget, setBudget] = useState<BudgetOverview | null>(INITIAL_BUDGET);
-  const [savedTrips, setSavedTrips] = useState<SavedTripSnippet[]>(() => {
-    let deletedTripIds: string[] = [];
-    if (typeof window !== 'undefined') {
-      try {
-        deletedTripIds = JSON.parse(localStorage.getItem('TRAVELAI_DELETED_TRIP_IDS') || '[]');
-      } catch {}
-    }
-    return PRESET_TRIPS.filter((t) => !deletedTripIds.includes(t.id)).map((t) => ({
-      id: t.id,
-      name: t.title || `${t.destination} Circuit`,
-      destinationTag: t.destination.split(',')[0],
-      daysTag: `${t.days} Days`,
-    }));
-  });
+  const [trip, setTrip] = useState<TripSummary | null>(null);
+  const [days, setDays] = useState<ItineraryDay[]>([]);
+  const [flights, setFlights] = useState<FlightOption[]>([]);
+  const [hotels, setHotels] = useState<HotelOption[]>([]);
+  const [weather, setWeather] = useState<WeatherCondition | null>(null);
+  const [budget, setBudget] = useState<BudgetOverview | null>(null);
+  const [savedTrips, setSavedTrips] = useState<SavedTripSnippet[]>([]);
 
   // Conversations State
-  const [conversations, setConversations] = useState<ConversationHistoryItem[]>(() => {
-    let deletedIds: string[] = [];
-    if (typeof window !== 'undefined') {
-      try {
-        deletedIds = JSON.parse(localStorage.getItem('TRAVELAI_DELETED_CONVERSATIONS') || '[]');
-      } catch {}
-    }
-    return INITIAL_CONVERSATIONS.filter((c) => !deletedIds.includes(c.id));
-  });
+  const [conversations, setConversations] = useState<ConversationHistoryItem[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('TRAVELAI_CONVERSATION_ID');
@@ -114,7 +93,7 @@ export function useTravelApi() {
     return null;
   });
 
-  // Chat & Messaging state: restore from cached messages or default
+  // Chat & Messaging state: restore from cached messages or default welcome message
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -127,7 +106,7 @@ export function useTravelApi() {
         }
       } catch {}
     }
-    return INITIAL_CHAT_MESSAGES;
+    return [createNewChatWelcomeMessage()];
   });
   const [promptInput, setPromptInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -288,11 +267,6 @@ export function useTravelApi() {
           };
         });
         const merged = [...enrichedHistory];
-        for (const preset of PRESET_TRIPS) {
-          if (!deletedTripIds.includes(preset.id) && !merged.some((t: any) => (t.id || t._id) === preset.id)) {
-            merged.push(preset);
-          }
-        }
         setRawTripsHistory(merged);
         const snippets: SavedTripSnippet[] = merged.map((doc: any, idx: number) => ({
           id: doc.id || doc._id || `trip-${idx}`,
@@ -308,22 +282,16 @@ export function useTravelApi() {
           syncTripState(current);
         }
       } else {
-        const validPresets = PRESET_TRIPS.filter((t) => !deletedTripIds.includes(t.id));
-        setRawTripsHistory(validPresets);
-        const defaultSnippets: SavedTripSnippet[] = validPresets.map((doc: any) => ({
-          id: doc.id,
-          name: doc.title || `${doc.destination} Circuit`,
-          destinationTag: doc.destination.split(',')[0],
-          daysTag: `${doc.days} Days`,
-        }));
-        setSavedTrips(defaultSnippets);
-        const current = validPresets.find((t) => t.id === activeTripId) || validPresets[0];
-        if (current) {
-          syncTripState(current);
-        }
+        // New user or user with no created trips yet
+        setRawTripsHistory([]);
+        setSavedTrips([]);
+        syncTripState(null);
       }
     } catch (err) {
-      console.warn('Falling back to default trips history state:', err);
+      console.warn('Falling back to empty trips history state:', err);
+      setRawTripsHistory([]);
+      setSavedTrips([]);
+      syncTripState(null);
     } finally {
       setIsLoadingTrips(false);
     }

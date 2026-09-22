@@ -1,6 +1,8 @@
 import os
 import json
 import httpx
+import re
+from datetime import datetime, timedelta
 from app.ai.llm import llm
 from app.ai.orchestrator.state import TravelState
 from langchain_core.prompts import ChatPromptTemplate
@@ -8,13 +10,33 @@ from app.ai.rag.retriever import retrieve_travel_knowledge
 
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 
+def format_outbound_date(raw_date: str = None) -> str:
+    if raw_date:
+        m_iso = re.search(r'\d{4}-\d{2}-\d{2}', str(raw_date))
+        if m_iso:
+            return m_iso.group(0)
+        months = {'jan':1, 'feb':2, 'mar':3, 'apr':4, 'may':5, 'jun':6, 'jul':7, 'aug':8, 'sep':9, 'oct':10, 'nov':11, 'dec':12}
+        m = re.search(r'(\d{1,2})[\s\-]+([a-zA-Z]{3,9})[\s\-]+(\d{4})', str(raw_date))
+        if m:
+            day = int(m.group(1))
+            month_str = m.group(2)[:3].lower()
+            year = int(m.group(3))
+            if month_str in months:
+                return f"{year:04d}-{months[month_str]:02d}-{day:02d}"
+    future_date = datetime.now() + timedelta(days=14)
+    return future_date.strftime("%Y-%m-%d")
+
 # Mapping popular destination and origin names to IATA airport codes
 AIRPORT_CODES = {
     "goa": "GOI",
+    "dabolim": "GOI",
+    "mopa": "GOX",
     "jaipur": "JAI",
+    "rajasthan": "JAI",
     "delhi": "DEL",
     "new delhi": "DEL",
     "mumbai": "BOM",
+    "bombay": "BOM",
     "bengaluru": "BLR",
     "bangalore": "BLR",
     "hyderabad": "HYD",
@@ -27,6 +49,9 @@ AIRPORT_CODES = {
     "varanasi": "VNS",
     "udaipur": "UDR",
     "leh": "IXL",
+    "ladakh": "IXL",
+    "srinagar": "SXR",
+    "kashmir": "SXR",
     "amritsar": "ATQ",
     "kerala": "COK",
     "kochi": "COK",
@@ -35,8 +60,62 @@ AIRPORT_CODES = {
     "shimla": "SLV",
     "manali": "KUU",
     "chandigarh": "IXC",
-    "lucknow": "LKO"
+    "lucknow": "LKO",
+    "tokyo": "TYO",
+    "paris": "CDG",
+    "london": "LHR",
+    "singapore": "SIN",
+    "dubai": "DXB",
+    "bangkok": "BKK",
+    "bali": "DPS"
 }
+
+def get_airport_code(location_name: str, is_origin: bool = False) -> str:
+    """
+    Resolves IATA airport code for any location string.
+    Handles 'Mumbai, India', 'Hyderabad -> Mumbai', 'Goa, Dabolim', etc.
+    Never defaults blindly to GOI.
+    """
+    if not location_name:
+        return "HYD" if is_origin else "BOM"
+        
+    raw = str(location_name).strip()
+    if "->" in raw:
+        parts = raw.split("->")
+        raw = parts[0].strip() if is_origin else parts[1].strip()
+        
+    lower_raw = raw.lower()
+    
+    # 1. Direct match in dictionary
+    if lower_raw in AIRPORT_CODES:
+        return AIRPORT_CODES[lower_raw]
+        
+    # 2. Match first city part before comma/hyphen/slash
+    city_part = re.split(r'[,–\-\(/]', lower_raw)[0].strip()
+    if city_part in AIRPORT_CODES:
+        return AIRPORT_CODES[city_part]
+        
+    # 3. Check substring match in dictionary keys
+    for key, code in AIRPORT_CODES.items():
+        if key in lower_raw or key in city_part:
+            return code
+
+    # 4. Check if raw is already a 3-letter uppercase IATA code
+    if len(raw) == 3 and raw.isalpha() and raw.isupper():
+        return raw
+
+    # 5. LLM Dynamic Airport Resolver for unknown states, countries, or regions
+    try:
+        prompt = f"What is the primary 3 letter IATA airport code for {raw}? Return ONLY the 3 letter code in uppercase like BOM or DEL or JTR or MLE. No extra text."
+        res = llm.invoke(prompt).content.strip().upper()[:3]
+        if len(res) == 3 and res.isalpha():
+            AIRPORT_CODES[lower_raw] = res
+            return res
+    except Exception as e:
+        print(f"LLM airport code resolution warning for '{raw}': {e}")
+
+    # 6. Safe defaults: HYD for origin, BOM for destination
+    return "HYD" if is_origin else "BOM"
 
 def fetch_real_flights_serpapi(destination: str, origin: str = "Hyderabad", currency: str = "INR", budget: float = None, start_date: str = None):
     """
@@ -48,12 +127,11 @@ def fetch_real_flights_serpapi(destination: str, origin: str = "Hyderabad", curr
         print("--- FLIGHT AGENT: No SERPAPI_API_KEY found in environment. Using RAG/LLM. ---")
         return None
         
-    dest_key = destination.lower().strip()
-    origin_key = origin.lower().strip()
-    arrival_code = AIRPORT_CODES.get(dest_key, "GOI")
-    departure_code = AIRPORT_CODES.get(origin_key, "HYD")
+    arrival_code = get_airport_code(destination, is_origin=False)
+    departure_code = get_airport_code(origin, is_origin=True)
+    formatted_date = format_outbound_date(start_date)
 
-    print(f"--- FLIGHT AGENT: Querying SerpApi Google Flights ({departure_code} -> {arrival_code}, date={start_date}) ---")
+    print(f"--- FLIGHT AGENT: Querying SerpApi Google Flights ({departure_code} -> {arrival_code}, date={formatted_date}) ---")
     
     url = "https://serpapi.com/search.json"
     params = {
@@ -61,11 +139,10 @@ def fetch_real_flights_serpapi(destination: str, origin: str = "Hyderabad", curr
         "departure_id": departure_code,
         "arrival_id": arrival_code,
         "currency": currency,
-        "type": "2",  # One-way / Round trip
+        "outbound_date": formatted_date,
+        "type": "2",  # One-way
         "api_key": api_key
     }
-    if start_date:
-        params["outbound_date"] = start_date
     
     try:
         response = httpx.get(url, params=params, timeout=15.0)
@@ -183,11 +260,11 @@ FLIGHT_PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 def flight_node(state: TravelState) -> dict:
-    destination = state.get("destination") or "Goa"
+    destination = state.get("destination") or "Mumbai"
     origin = state.get("origin") or "Hyderabad"
     currency = state.get("currency") or "INR"
-    dest_code = AIRPORT_CODES.get(destination.lower().strip(), "GOI")
-    origin_code = AIRPORT_CODES.get(origin.lower().strip(), "HYD")
+    dest_code = get_airport_code(destination, is_origin=False)
+    origin_code = get_airport_code(origin, is_origin=True)
     route_key = f"{origin_code}-{dest_code}"
 
     print(f"--- FLIGHT AGENT: Finding flights from {origin} ({origin_code}) to {destination} ({dest_code}) ---")

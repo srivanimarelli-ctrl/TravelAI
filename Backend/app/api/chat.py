@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Header
+from typing import List, Optional
 from app.schemas.chat import (
     ChatMessageRequest,
     ChatMessageResponse,
@@ -17,14 +17,15 @@ from app.services.conversation_service import (
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 @router.post("/message", response_model=ChatMessageResponse)
-def send_chat_message(request: ChatMessageRequest):
+def send_chat_message(request: ChatMessageRequest, x_user_id: Optional[str] = Header(None)):
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message content cannot be empty.")
     
     try:
         response_data = process_chat_message(
             conversation_id=request.conversation_id,
-            user_message=request.message.strip()
+            user_message=request.message.strip(),
+            user_id=x_user_id
         )
         return response_data
     except Exception as e:
@@ -32,9 +33,9 @@ def send_chat_message(request: ChatMessageRequest):
         raise HTTPException(status_code=500, detail=f"Failed to process chat message: {str(e)}")
 
 @router.get("/conversations", response_model=List[ConversationSummaryResponse])
-def get_conversations_list():
+def get_conversations_list(x_user_id: Optional[str] = Header(None)):
     try:
-        convs = list_conversations()
+        convs = list_conversations(user_id=x_user_id)
         return convs
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list conversations: {str(e)}")

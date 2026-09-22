@@ -62,50 +62,6 @@ export const PlannerStudioPage: React.FC<PlannerStudioPageProps> = ({
   onNavigateToItineraryHub,
   onNewTrip,
 }) => {
-  // Empty State: Render when no trip or invalid trip
-  if (!trip) {
-    return (
-      <div className="w-full flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-6 text-center animate-in fade-in">
-        <div className="max-w-md w-full p-8 rounded-2xl bg-surface-container border border-surface-container-highest/60 shadow-2xl space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner">
-            <Compass className="w-8 h-8 text-primary" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold text-on-surface">No Active Trip Selected</h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              Select a trip from Itinerary Hub or create a new one
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            {onNavigateToItineraryHub && (
-              <button
-                type="button"
-                onClick={onNavigateToItineraryHub}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-fixed transition-all shadow-md flex items-center justify-center gap-2"
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span>Go to Itinerary Hub</span>
-              </button>
-            )}
-            {onNewTrip && (
-              <button
-                type="button"
-                onClick={onNewTrip}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-semibold border border-surface-container-highest/60 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                title="Open New Chat & Plan Trip"
-              >
-                <Plus className="w-4 h-4 text-primary" />
-                <span>Create New Trip</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full flex-1 flex flex-col xl:flex-row min-h-[calc(100vh-4rem)] p-3 sm:p-4 lg:p-6 gap-4 lg:gap-6 overflow-hidden">
       {/* LEFT PANE: Chat & Autonomous Assistant Desk */}
@@ -125,18 +81,53 @@ export const PlannerStudioPage: React.FC<PlannerStudioPageProps> = ({
       />
 
       {/* RIGHT PANE: Itinerary & Trip Architecture Dashboard */}
-      <DashboardPanel
-        trip={trip}
-        days={days}
-        flights={flights}
-        hotels={hotels}
-        weather={weather}
-        budget={budget}
-        activeTab={activeTab}
-        onSwitchTab={onSwitchTab}
-        onSelectFlight={onSelectFlight}
-        onSelectHotel={onSelectHotel}
-      />
+      {trip ? (
+        <DashboardPanel
+          trip={trip}
+          days={days}
+          flights={flights}
+          hotels={hotels}
+          weather={weather}
+          budget={budget}
+          activeTab={activeTab}
+          onSwitchTab={onSwitchTab}
+          onSelectFlight={onSelectFlight}
+          onSelectHotel={onSelectHotel}
+        />
+      ) : (
+        <div className="flex-1 min-w-0 bg-surface-container/50 border border-surface-container-high/40 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center animate-in fade-in">
+          <div className="max-w-md space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner border border-primary/20">
+              <Compass className="w-8 h-8 text-primary animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-on-surface">No Trip Generated Yet</h2>
+              <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+                Type your trip request in the chat on the left (e.g. <span className="text-primary font-medium">"Plan a 4-day trip to Goa for 2 people"</span>) and TravelAI will craft your complete itinerary right here!
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-wrap justify-center gap-2">
+              {[
+                "Plan 4 days in Goa for ₹50,000",
+                "Plan 5 days in Kerala for 2 adults",
+                "Plan 7 days in Tokyo"
+              ].map((sample, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onSendMessage(sample)}
+                  className="px-3.5 py-2 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-medium border border-surface-container-highest/60 transition-all text-left flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-primary/40"
+                >
+                  <Plus className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span>"{sample}"</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

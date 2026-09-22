@@ -2,6 +2,23 @@
  * TypeScript Data Models & Interfaces for TravelAI FastAPI Frontend
  */
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+}
+
 export interface LocationChip {
   label: string;
   sublabel?: string;

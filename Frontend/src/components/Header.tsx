@@ -7,9 +7,11 @@ import {
   Bell,
   Settings,
   User,
-  Check
+  Check,
+  LogOut
 } from 'lucide-react';
 import { ApiStatusState, TripSummary } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   apiStatus: ApiStatusState;
@@ -30,7 +32,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTripPreset,
   onSearch,
 }) => {
+  const { user, logout } = useAuth();
   const [isTripDropdownOpen, setIsTripDropdownOpen] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -255,15 +259,46 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* User Profile Avatar */}
-          <div className="flex items-center gap-2 pl-1">
+          <div className="relative flex items-center gap-2 pl-1">
             <button
               type="button"
               aria-label="User Profile"
-              title="Traveler Profile (Demo User)"
-              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-[0_0_12px_rgba(137,206,255,0.35)] text-on-primary hover:opacity-90 transition-opacity"
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              title={user ? `${user.name} (${user.email})` : 'Traveler Profile'}
+              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-[0_0_12px_rgba(137,206,255,0.35)] text-on-primary hover:opacity-90 transition-opacity font-bold text-xs cursor-pointer"
             >
-              <User className="w-4 h-4" />
+              {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
             </button>
+
+            {showUserDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowUserDropdown(false)}
+                />
+                <div className="absolute right-0 top-10 mt-2 w-64 rounded-xl bg-surface-container-high/95 backdrop-blur-xl border border-surface-container-highest shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95">
+                  <div className="pb-2.5 border-b border-surface-container-highest/60 mb-2">
+                    <div className="font-semibold text-xs text-on-surface truncate">
+                      {user?.name || 'Explorer'}
+                    </div>
+                    <div className="text-[11px] text-on-surface-variant truncate">
+                      {user?.email || 'user@travelai.com'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-error hover:bg-error/10 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

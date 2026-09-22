@@ -1,0 +1,6 @@
+{
+  "name": "TravelAI",
+  "description": "AI-powered travel companion with waypoint planning, personalized trips, and glassmorphic authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

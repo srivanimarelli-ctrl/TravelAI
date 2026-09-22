@@ -5,7 +5,7 @@
  * configured to communicate with an existing FastAPI REST backend.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { useTravelApi } from './hooks/useTravelApi';
 import { Sidebar } from './components/Sidebar';
@@ -16,6 +16,9 @@ import { ItineraryHubPage } from './pages/ItineraryHubPage';
 import { BookingsDeskPage } from './pages/BookingsDeskPage';
 import { AiPlacesMemoryPage } from './pages/AiPlacesMemoryPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 
 function AppContent() {
   const {
@@ -273,13 +276,44 @@ function AppContent() {
   );
 }
 
+function AuthenticatedApp() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-200">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#89ceff]" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return authView === 'login' ? (
+      <LoginPage
+        onLoginSuccess={() => {}}
+        onGoToRegister={() => setAuthView('register')}
+      />
+    ) : (
+      <RegisterPage
+        onRegisterSuccess={() => setAuthView('login')}
+        onGoToLogin={() => setAuthView('login')}
+      />
+    );
+  }
+
+  return <AppContent />;
+}
+
 export default function App() {
   return (
     <ErrorBoundary
       fallbackTitle="Application Error"
       fallbackMessage="A critical application error occurred. You can reload the application to restart."
     >
-      <AppContent />
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

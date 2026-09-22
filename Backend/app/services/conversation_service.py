@@ -21,7 +21,7 @@ def setup_indexes():
 # Run index setup
 setup_indexes()
 
-def create_conversation(title: str = "New Travel Chat") -> ConversationModel:
+def create_conversation(title: str = "New Travel Chat", user_id: Optional[str] = None) -> ConversationModel:
     conv_id = f"conv_{uuid.uuid4().hex[:10]}"
     conv = ConversationModel(
         conversation_id=conv_id,
@@ -32,6 +32,8 @@ def create_conversation(title: str = "New Travel Chat") -> ConversationModel:
         updated_at=datetime.utcnow()
     )
     doc = conv.model_dump()
+    if user_id:
+        doc["user_id"] = user_id
     conversations_col.insert_one(doc)
     return conv
 
@@ -39,7 +41,6 @@ def get_conversation(conversation_id: str) -> Optional[ConversationModel]:
     doc = conversations_col.find_one({"conversation_id": conversation_id})
     if not doc:
         return None
-    # Remove _id from dict if present
     doc.pop("_id", None)
     tc = doc.get("travel_context")
     if isinstance(tc, dict):
@@ -49,12 +50,17 @@ def get_conversation(conversation_id: str) -> Optional[ConversationModel]:
             doc["travel_context"]["destination"] = ", ".join(str(d) for d in dest if d)
     return ConversationModel(**doc)
 
-def get_or_create_conversation(conversation_id: Optional[str] = None) -> ConversationModel:
+def get_or_create_conversation(conversation_id: Optional[str] = None, user_id: Optional[str] = None) -> ConversationModel:
     if conversation_id:
         conv = get_conversation(conversation_id)
         if conv:
+            if user_id:
+                conversations_col.update_one(
+                    {"conversation_id": conversation_id, "user_id": {"$exists": False}},
+                    {"$set": {"user_id": user_id}}
+                )
             return conv
-    return create_conversation()
+    return create_conversation(user_id=user_id)
 
 def update_travel_context(conversation_id: str, new_context: Dict[str, Any], current_trip_id: Optional[str] = None) -> ConversationModel:
     now = datetime.utcnow()
@@ -116,8 +122,11 @@ def get_conversation_messages(conversation_id: str, limit: int = 50) -> List[Dic
         messages.append(doc)
     return messages
 
-def list_conversations(limit: int = 20) -> List[Dict[str, Any]]:
-    cursor = conversations_col.find({"status": "active"}).sort("updated_at", -1).limit(limit)
+def list_conversations(user_id: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+    query: Dict[str, Any] = {"status": "active"}
+    if user_id:
+        query["user_id"] = user_id
+    cursor = conversations_col.find(query).sort("updated_at", -1).limit(limit)
     convs = []
     for doc in cursor:
         doc.pop("_id", None)

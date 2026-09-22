@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional
 from app.ai.orchestrator.langgraph_graph import graph
@@ -17,8 +17,8 @@ class PlanRequest(BaseModel):
     preferences: Optional[str] = None  # Extra preferences
 
 @router.post("/plan")
-def plan_trip(request: PlanRequest):
-    print("--- API: Received trip planning request ---")
+def plan_trip(request: PlanRequest, x_user_id: Optional[str] = Header(None)):
+    print(f"--- API: Received trip planning request (User: {x_user_id}) ---")
     
     # 1. Prepare initial state for LangGraph
     initial_state = {
@@ -58,6 +58,8 @@ def plan_trip(request: PlanRequest):
         "budget_breakdown": final_state.get("budget_breakdown") or {},
         "created_at": datetime.utcnow()
     }
+    if x_user_id:
+        trip_data["user_id"] = x_user_id
     
     # 4. Save to MongoDB in the "trips" collection
     try:
@@ -74,13 +76,17 @@ def plan_trip(request: PlanRequest):
     return trip_data
 
 @router.get("/history")
-def get_trip_history():
-    print("--- API: Fetching trip history ---")
+def get_trip_history(x_user_id: Optional[str] = Header(None)):
+    print(f"--- API: Fetching trip history for user '{x_user_id}' ---")
     trips_list = []
     
     try:
-        # Fetch latest 10 trips from MongoDB
-        cursor = db.trips.find().sort("created_at", -1).limit(10)
+        # Fetch latest 10 trips from MongoDB for this user if specified
+        query = {}
+        if x_user_id:
+            query["user_id"] = x_user_id
+
+        cursor = db.trips.find(query).sort("created_at", -1).limit(10)
         for doc in cursor:
             doc["id"] = str(doc["_id"])
             del doc["_id"]
