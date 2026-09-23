@@ -2170,7 +2170,7 @@ export async function fetchSavedTripsList(): Promise<SavedTripSnippet[]> {
 
   try {
     const history = await fetchTripHistory();
-    if (Array.isArray(history) && history.length > 0) {
+    if (Array.isArray(history)) {
       return history
         .map((doc: any, idx: number) => ({
           id: doc.id || doc._id || `trip-${idx}`,
@@ -2246,7 +2246,7 @@ export async function fetchConversationsList(): Promise<ConversationHistoryItem[
 
   try {
     const convs = await apiFetch<any[]>('/api/chat/conversations');
-    if (Array.isArray(convs) && convs.length > 0) {
+    if (Array.isArray(convs)) {
       return convs
         .map((c: any) => ({
           id: c.conversation_id,

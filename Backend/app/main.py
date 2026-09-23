@@ -9,7 +9,7 @@ from app.api.auth import router as auth_router
 # Load environment variables from .env
 load_dotenv()
 
-travel_ai = FastAPI(title="TravelAI API")
+app = FastAPI(title="TravelAI API")
 
 # Next.js default port is 3000, Vite default port is 5173
 ALLOWED_ORIGINS = [
@@ -19,7 +19,7 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-travel_ai.add_middleware(
+app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
@@ -28,11 +28,11 @@ travel_ai.add_middleware(
 )
 
 # Register API routes
-travel_ai.include_router(trips_router, prefix="/api/trips")
-travel_ai.include_router(chat_router)
-travel_ai.include_router(auth_router, prefix="/api/auth")
+app.include_router(trips_router, prefix="/api/trips")
+app.include_router(chat_router)
+app.include_router(auth_router, prefix="/api/auth")
 
-@travel_ai.get("/")
+@app.get("/")
 def read_root():
     return {
         "status": "online",

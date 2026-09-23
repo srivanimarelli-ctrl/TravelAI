@@ -104,17 +104,8 @@ def get_airport_code(location_name: str, is_origin: bool = False) -> str:
     if len(raw) == 3 and raw.isalpha() and raw.isupper():
         return raw
 
-    # 5. LLM Dynamic Airport Resolver for unknown states, countries, or regions
-    try:
-        prompt = f"What is the primary 3 letter IATA airport code for {raw}? Return ONLY the 3 letter code in uppercase like BOM or DEL or JTR or MLE. No extra text."
-        res = llm.invoke(prompt).content.strip().upper()[:3]
-        if len(res) == 3 and res.isalpha():
-            AIRPORT_CODES[lower_raw] = res
-            return res
-    except Exception as e:
-        print(f"LLM airport code resolution warning for '{raw}': {e}")
-
-    # 6. Safe defaults: HYD for origin, BOM for destination
+    # 5. Dynamic LLM airport resolution removed for efficiency.
+    # Safe defaults: HYD for origin, BOM for destination
     return "HYD" if is_origin else "BOM"
 
 def fetch_real_flights_serpapi(destination: str, origin: str = "Hyderabad", currency: str = "INR", budget: float = None, start_date: str = None):
@@ -242,23 +233,6 @@ VERIFIED_FLIGHT_SCHEDULES = {
         {"airline": "Akasa Air", "flight_no": "QP-1341", "price": 5920.0, "departure": "02:20 PM", "arrival": "04:50 PM", "duration": "2h 30m", "origin": "DEL", "destination": "GOI", "aircraft": "Boeing 737 MAX 8 • Express Direct"}
     ]
 }
-
-FLIGHT_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a flight booking specialist assistant. Your job is to provide a list of 2-3 realistic flight options "
-        "from origin {origin} to destination {destination} based on the overall trip outline: {planner_draft}.\n"
-        "Here is some local flight knowledge retrieved from our database:\n"
-        "{rag_context}\n\n"
-        "Generate realistic airline flights (e.g. IndiGo 6E, Air India AI, Akasa Air QP, Vistara UK) with realistic departure and arrival timings. "
-        "For {currency}, pricing MUST be realistic market fares per passenger: for INR domestic flights, fares range between 3500 and 7500 INR per person; for USD flights, 50 to 350 USD per person. "
-        "Total user budget for entire trip is {budget} {currency}.\n"
-        "Return ONLY a raw JSON list of objects. Each object MUST contain these keys: airline, flight_no, price, departure, arrival, duration, origin, destination.\n"
-        "Do not include markdown wrapper, explanation, or notes."
-    ),
-    ("human", "Get flight options.")
-])
-
 def flight_node(state: TravelState) -> dict:
     destination = state.get("destination") or "Mumbai"
     origin = state.get("origin") or "Hyderabad"
@@ -299,79 +273,20 @@ def flight_node(state: TravelState) -> dict:
         print(f"--- FLIGHT AGENT: Returning {len(formatted)} verified route flights for {route_key} ---")
         return {"flights": formatted}
 
-    # 3. Fallback to ChromaDB RAG + Local LLM
-    rag_context = retrieve_travel_knowledge(f"{origin} to {destination} flights airports airlines fares", k=2)
-    
-    prompt_val = FLIGHT_PROMPT.format_messages(
-        origin=origin,
-        destination=destination,
-        origin_code=origin_code,
-        dest_code=dest_code,
-        currency=currency,
-        planner_draft=state.get("planner_draft") or "No draft outline",
-        budget=state.get("budget") or 50000.0,
-        rag_context=rag_context or "No specific flight database records found."
-    )
-    
-    try:
-        response = llm.invoke(prompt_val)
-        content = response.content.strip()
-        if content.startswith("```"):
-            content = "\n".join(content.split("\n")[1:])
-        if content.endswith("```"):
-            content = "\n".join(content.split("\n")[:-1])
-        content = content.strip()
-        
-        flight_data = json.loads(content)
-        if not isinstance(flight_data, list):
-            flight_data = [flight_data]
-            
-        # Ensure realistic pricing fallback
-        for f in flight_data:
-            if currency == "INR" and (not f.get("price") or float(f.get("price", 0)) < 1500):
-                f["price"] = 4500.0
-            elif currency == "USD" and (not f.get("price") or float(f.get("price", 0)) < 40):
-                f["price"] = 85.0
-            if not f.get("origin"):
-                f["origin"] = origin_code
-            if not f.get("destination"):
-                f["destination"] = dest_code
-                
-        return {"flights": flight_data}
-    except Exception as e:
-        print(f"Error parsing flight JSON: {e}")
-        return {
-            "flights": [
-                {
-                    "airline": "IndiGo",
-                    "flight_no": "6E-512",
-                    "price": 4500.0 if currency == "INR" else 65.0,
-                    "departure": "06:15 AM",
-                    "arrival": "08:35 AM",
-                    "duration": "2h 20m",
-                    "origin": origin_code,
-                    "destination": dest_code
-                },
-                {
-                    "airline": "Akasa Air",
-                    "flight_no": "QP-1342",
-                    "price": 4200.0 if currency == "INR" else 60.0,
-                    "departure": "09:45 AM",
-                    "arrival": "12:10 PM",
-                    "duration": "2h 25m",
-                    "origin": origin_code,
-                    "destination": dest_code
-                },
-                {
-                    "airline": "Air India",
-                    "flight_no": "AI-840",
-                    "price": 5400.0 if currency == "INR" else 75.0,
-                    "departure": "04:30 PM",
-                    "arrival": "06:55 PM",
-                    "duration": "2h 25m",
-                    "origin": origin_code,
-                    "destination": dest_code
-                }
-            ]
-        }
+    # 3. Fallback to deterministic static defaults
+    print(f"--- FLIGHT AGENT: Using default deterministic flights for {route_key} ---")
+    return {
+        "flights": [
+            {
+                "airline": "IndiGo",
+                "flight_no": "6E-512",
+                "price": 4500.0 if currency == "INR" else 65.0,
+                "departure": "06:15 AM",
+                "arrival": "08:35 AM",
+                "duration": "2h 20m",
+                "origin": origin_code,
+                "destination": dest_code
+            }
+        ]
+    }
 

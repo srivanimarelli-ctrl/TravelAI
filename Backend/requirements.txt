@@ -4,6 +4,7 @@ langchain
 langgraph
 langchain-ollama
 langchain-community
+langchain-groq
 pymongo
 chromadb
 httpx

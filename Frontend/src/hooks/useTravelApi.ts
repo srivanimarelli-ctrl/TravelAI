@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, MouseEvent } from 'react';
+import { useState, useEffect, useCallback, MouseEvent, useRef } from 'react';
 import {
   TripSummary,
   ItineraryDay,
@@ -62,6 +62,8 @@ export function useTravelApi() {
     mode: 'mock-fallback',
   });
   const [isCheckingApi, setIsCheckingApi] = useState(false);
+
+  const hasLoadedRef = useRef(false);
 
   // User-visible Error Feedback State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -187,8 +189,14 @@ export function useTravelApi() {
   }, []);
 
   // Guarded setActiveTripId: Verifies existence before setting, returns boolean, sets errorMessage on failure
-  const setActiveTripId = useCallback((id: string): boolean => {
-    if (!id || typeof id !== 'string') {
+  const setActiveTripId = useCallback((id: string | null): boolean => {
+    if (!id) {
+      setErrorMessage(null);
+      syncTripState(null);
+      return true;
+    }
+
+    if (typeof id !== 'string') {
       setErrorMessage('Invalid trip ID supplied.');
       return false;
     }
@@ -277,9 +285,17 @@ export function useTravelApi() {
         setSavedTrips(snippets);
 
         // Find active trip or keep current
-        const current = merged.find((t: any) => (t.id || t._id) === activeTripId) || merged[0];
+        // Only auto-select merged[0] if we haven't explicitly cleared the trip
+        const current = activeTripId 
+          ? merged.find((t: any) => (t.id || t._id) === activeTripId)
+          : null;
+          
         if (current) {
           syncTripState(current);
+        } else if (!activeTripId && merged.length > 0) {
+          if (!hasLoadedRef.current) {
+            syncTripState(merged[0]);
+          }
         }
       } else {
         // New user or user with no created trips yet
@@ -294,6 +310,7 @@ export function useTravelApi() {
       syncTripState(null);
     } finally {
       setIsLoadingTrips(false);
+      hasLoadedRef.current = true;
     }
 
     // 2. Fetch conversations list (GET /api/chat/conversations)

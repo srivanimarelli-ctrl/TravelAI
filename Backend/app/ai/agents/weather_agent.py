@@ -126,20 +126,6 @@ def fetch_realtime_weather_openmeteo(destination: str, days: int = 3):
         return None
 
 
-WEATHER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a weather specialist assistant. Your job is to provide a realistic weather forecast "
-        "summary for the destination {destination} for the next {days} days.\n"
-        "Here is some local weather and seasonal data retrieved from our database:\n"
-        "{rag_context}\n\n"
-        "Return ONLY a raw JSON object with these keys: average_temp, condition, clothing_recommendation, summary. "
-        "Do not include markdown wrapper, explanation, or notes. Example output:\n"
-        '{{"average_temp": "27°C", "condition": "Sunny", "clothing_recommendation": "Light clothes, sunglasses", "summary": "Warm and clear skies forecast."}}'
-    ),
-    ("human", "Get weather forecast.")
-])
-
 def weather_node(state: TravelState) -> dict:
     print(f"--- WEATHER AGENT: Fetching weather for {state['destination']} ---")
     
@@ -148,29 +134,13 @@ def weather_node(state: TravelState) -> dict:
     if live_weather:
         return {"weather": live_weather}
     
-    # 2. Fallback to ChromaDB RAG + Local Qwen LLM
-    rag_context = retrieve_travel_knowledge(f"{state['destination']} weather forecast climate monsoons seasons temperature best time to visit", k=2)
-    
-    prompt_val = WEATHER_PROMPT.format_messages(
-        destination=state["destination"],
-        days=state["days"],
-        rag_context=rag_context or "No specific weather database records found."
-    )
-    
-    response = llm.invoke(prompt_val)
-    
-    try:
-        weather_data = json.loads(response.content.strip())
-        return {
-            "weather": weather_data
+    # 2. Fallback to deterministic dictionary (no LLM)
+    print(f"--- WEATHER AGENT: Using default deterministic weather for {state['destination']} ---")
+    return {
+        "weather": {
+            "average_temp": "25.0°C",
+            "condition": "Pleasant",
+            "clothing_recommendation": "Comfortable casual wear",
+            "summary": f"Historical pleasant weather expected for {state['destination']}."
         }
-    except Exception as e:
-        print(f"Error parsing weather JSON: {e}")
-        return {
-            "weather": {
-                "average_temp": "25°C",
-                "condition": "Pleasant",
-                "clothing_recommendation": "Comfortable casual wear",
-                "summary": f"Seasonal pleasant weather expected for {state['destination']}."
-            }
-        }
+    }

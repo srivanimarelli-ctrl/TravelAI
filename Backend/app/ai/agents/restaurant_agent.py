@@ -96,7 +96,9 @@ def fetch_real_restaurants_overpass(destination: str):
                 "price_range": "$$",
                 "rating": "4.3",
                 "address": address,
-                "popular_dish": popular_dish
+                "popular_dish": popular_dish,
+                "lat": element.get("lat") or coords["lat"],
+                "lon": element.get("lon") or coords["lon"]
             })
             
             if len(formatted_restaurants) >= 4:
@@ -112,21 +114,6 @@ def fetch_real_restaurants_overpass(destination: str):
         return None
 
 
-RESTAURANT_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a local culinary and restaurant specialist assistant. Your job is to provide a list of 3-4 realistic "
-        "dining/restaurant recommendations in the destination {destination} based on the trip outline: {planner_draft}.\n"
-        "Here is some local culinary and dining knowledge retrieved from our database:\n"
-        "{rag_context}\n\n"
-        "Take into consideration the user's preferences: {preferences}.\n"
-        "Return ONLY a raw JSON list of objects. Each object MUST contain these keys: name, cuisine, price_range, rating, address, popular_dish.\n"
-        "Do not include markdown wrapper, explanation, or notes. Example output:\n"
-        '[{{"name": "Britto\'s Restaurant", "cuisine": "Goan Seafood", "price_range": "$$", "rating": "4.2", "address": "Baga Beach, Goa", "popular_dish": "Goan Fish Curry"}}, ...]'
-    ),
-    ("human", "Get restaurant options.")
-])
-
 def restaurant_node(state: TravelState) -> dict:
     print(f"--- RESTAURANT AGENT: Finding restaurants in {state['destination']} ---")
     
@@ -135,43 +122,19 @@ def restaurant_node(state: TravelState) -> dict:
     if live_restaurants:
         return {"restaurants": live_restaurants}
     
-    # 2. Fallback to ChromaDB RAG + Local Qwen LLM
-    rag_context = retrieve_travel_knowledge(f"{state['destination']} restaurants dining food cafes shacks dishes fish curry seafood costs", k=2)
-    
-    prompt_val = RESTAURANT_PROMPT.format_messages(
-        destination=state["destination"],
-        planner_draft=state.get("planner_draft") or "No draft outline",
-        preferences=state.get("preferences") or "None",
-        rag_context=rag_context or "No specific restaurant database records found."
-    )
-    
-    response = llm.invoke(prompt_val)
-    
-    content = response.content.strip()
-    if content.startswith("```"):
-        content = "\n".join(content.split("\n")[1:])
-    if content.endswith("```"):
-        content = "\n".join(content.split("\n")[:-1])
-    content = content.strip()
-    
-    try:
-        restaurant_data = json.loads(content)
-        if not isinstance(restaurant_data, list):
-            restaurant_data = [restaurant_data]
-        return {
-            "restaurants": restaurant_data
-        }
-    except Exception as e:
-        print(f"Error parsing restaurant JSON: {e}")
-        return {
-            "restaurants": [
-                {
-                    "name": f"Traditional Food Spot in {state['destination']}",
-                    "cuisine": "Local Cuisine",
-                    "price_range": "$$",
-                    "rating": "4.0",
-                    "address": "City Center",
-                    "popular_dish": "Signature Chef Special"
-                }
-            ]
-        }
+    # 2. Fallback deterministic
+    print(f"--- RESTAURANT AGENT: Using default deterministic restaurants for {state['destination']} ---")
+    return {
+        "restaurants": [
+            {
+                "name": f"Traditional Food Spot in {state['destination']}",
+                "cuisine": "Local Cuisine",
+                "price_range": "$$",
+                "rating": "4.0",
+                "address": "City Center",
+                "popular_dish": "Signature Chef Special",
+                "lat": 0.0,
+                "lon": 0.0
+            }
+        ]
+    }

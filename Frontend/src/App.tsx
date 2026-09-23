@@ -79,6 +79,7 @@ function AppContent() {
   // Handler for New Bespoke Trip CTA (+ button): opens a fresh new chat session without sending any default prompt
   const handleNewTrip = () => {
     handleNewChat();
+    setActiveTripId(null);
     setActivePage('planner-studio');
     // Focus the chat prompt textarea so the user can immediately type their bespoke prompt
     setTimeout(() => {

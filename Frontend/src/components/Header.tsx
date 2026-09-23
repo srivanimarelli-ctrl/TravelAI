@@ -8,10 +8,13 @@ import {
   Settings,
   User,
   Check,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ApiStatusState, TripSummary } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   apiStatus: ApiStatusState;
@@ -33,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearch,
 }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isTripDropdownOpen, setIsTripDropdownOpen] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -246,6 +250,16 @@ export const Header: React.FC<HeaderProps> = ({
                 </>
               )}
             </div>
+
+            <button
+              type="button"
+              aria-label="Toggle Theme"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
+              title="Toggle Light/Dark Mode"
+            >
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </button>
 
             <button
               type="button"

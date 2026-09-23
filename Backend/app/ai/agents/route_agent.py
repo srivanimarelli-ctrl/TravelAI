@@ -3,70 +3,82 @@ from app.ai.orchestrator.state import TravelState
 from langchain_core.prompts import ChatPromptTemplate
 import json
 
-ROUTE_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a local routing and mapping specialist assistant. Your job is to organize the recommended "
-        "hotels, attractions, and restaurants into a logical day-by-day sequence for a trip to {destination}.\n"
-        "Input Data:\n"
-        "- Selected lodging options: {hotels}\n"
-        "- Sightseeing locations: {attractions}\n"
-        "- Selected food spots: {restaurants}\n\n"
-        "Perform these tasks:\n"
-        "1. Create a sequential itinerary day-by-day (Day 1, Day 2, etc.).\n"
-        "2. For each day, sequence the stops logically based on geographical proximity so the traveler doesn't backtrack.\n"
-        "3. Provide directions/notes on how to travel between these spots (e.g. by walk, local cab, metro).\n\n"
-        "Return ONLY a raw JSON object with these keys: day_by_day_route (a list of objects, each containing: day, stops, travel_tips).\n"
-        "Do not include markdown wrapper, explanation, or notes. Example output:\n"
-        '{{"day_by_day_route": [{{"day": 1, "stops": ["Sunset Beach Resort", "Aguada Fort", "Britto\'s Restaurant"], "travel_tips": "Fort is a 15-minute cab ride from the resort; restaurant is walking distance from the beach."}}, ...]}}'
-    ),
-    ("human", "Generate route and daily schedule.")
-])
+import math
+
+from datetime import datetime, timedelta
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0 # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 def route_node(state: TravelState) -> dict:
     print(f"--- ROUTE AGENT: Generating daily routes for {state['destination']} ---")
+    days = int(state.get("days", 3))
     
-    prompt_val = ROUTE_PROMPT.format_messages(
-        destination=state["destination"],
-        hotels=json.dumps(state.get("hotels") or []),
-        attractions=json.dumps(state.get("attractions") or []),
-        restaurants=json.dumps(state.get("restaurants") or [])
-    )
+    hotels = state.get("hotels", [])
+    hotel_name = hotels[0].get("name", "Hotel") if hotels else "Hotel"
     
-    response = llm.invoke(prompt_val)
+    attractions = state.get("attractions", [])
+    restaurants = state.get("restaurants", [])
     
-    # Strip any markdown formatting (like ```json ... ```) just in case the LLM includes it
-    content = response.content.strip()
-    if content.startswith("```"):
-        content = "\n".join(content.split("\n")[1:])
-    if content.endswith("```"):
-        content = "\n".join(content.split("\n")[:-1])
-    content = content.strip()
+    daily_routes = []
+    start_date = datetime.now() + timedelta(days=30)
     
-    try:
-        route_data = json.loads(content)
-        return {
-            "route_details": route_data,
-            "completed_steps": state.get("completed_steps", []) + ["route"]
-        }
-    except Exception as e:
-        print(f"Error parsing route JSON: {e}")
-        # Fail-safe default route details
-        return {
-            "route_details": {
-                "day_by_day_route": [
-                    {
-                        "day": i,
-                        "stops": [
-                            state.get("hotels", [{"name": "Hotel"}])[0].get("name", "Hotel"),
-                            state.get("attractions", [{"name": "Attraction"}])[0].get("name", "Attraction"),
-                            state.get("restaurants", [{"name": "Restaurant"}])[0].get("name", "Restaurant")
-                        ],
-                        "travel_tips": "Use local transport or walk."
-                    }
-                    for i in range(1, int(state.get("days", 3)) + 1)
-                ]
-            },
-            "error_logs": state.get("error_logs", []) + [f"Route generation error: {str(e)}"],
-            "completed_steps": state.get("completed_steps", []) + ["route"]
-        }
+    for i in range(days):
+        current_day_date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+        
+        # 1. Filter attractions by scheduled date
+        day_attractions = [a for a in attractions if a.get("scheduled_date") == current_day_date]
+        
+        # 2. Exclude CLOSED
+        valid_attractions = [a for a in day_attractions if a.get("status") != "CLOSED"]
+        
+        # 3. Prioritize OPEN
+        open_attractions = [a for a in valid_attractions if a.get("status") == "OPEN"]
+        unknown_attractions = [a for a in valid_attractions if a.get("status") == "UNKNOWN"]
+        
+        attraction = {"name": "Local Walk", "lat": 0.0, "lon": 0.0, "status": "UNKNOWN"}
+        
+        if open_attractions:
+            attraction = open_attractions[0]
+        elif unknown_attractions:
+            attraction = unknown_attractions[0]
+        # If all attractions for this day are CLOSED, we fallback to Local Walk.
+        
+        # Find closest restaurant to this attraction
+        best_rest = None
+        min_dist = float('inf')
+        
+        a_lat = float(attraction.get("lat") or 0.0)
+        a_lon = float(attraction.get("lon") or 0.0)
+        
+        for r in restaurants:
+            r_lat = float(r.get("lat") or 0.0)
+            r_lon = float(r.get("lon") or 0.0)
+            dist = haversine(a_lat, a_lon, r_lat, r_lon)
+            if dist < min_dist:
+                min_dist = dist
+                best_rest = r
+                
+        rest_name = best_rest.get("name", "Restaurant") if best_rest else "Local Restaurant"
+        dist_str = f"({min_dist:.1f} km away)" if min_dist != float('inf') and min_dist > 0 else ""
+        
+        travel_tips = f"Restaurant is close to the attraction {dist_str}. Use local transport or walk."
+        if attraction.get("status") == "UNKNOWN" and attraction.get("name") != "Local Walk":
+            travel_tips += " ⚠️ WARNING: Live operational hours unavailable; please verify locally before visiting."
+        
+        daily_routes.append({
+            "day": i + 1,
+            "stops": [hotel_name, attraction.get("name", "Attraction"), rest_name],
+            "travel_tips": travel_tips
+        })
+        
+    return {
+        "route_details": {
+            "day_by_day_route": daily_routes
+        },
+        "completed_steps": state.get("completed_steps", []) + ["route"]
+    }

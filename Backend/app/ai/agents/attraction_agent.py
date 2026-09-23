@@ -106,7 +106,9 @@ def fetch_real_attractions_overpass(destination: str):
                 "description": description,
                 "entrance_fee": entrance_fee,
                 "rating": "4.5",
-                "recommended_time_spent": time_spent
+                "recommended_time_spent": time_spent,
+                "lat": element.get("lat") or coords["lat"],
+                "lon": element.get("lon") or coords["lon"]
             })
             
             if len(formatted_attractions) >= 5:
@@ -122,21 +124,6 @@ def fetch_real_attractions_overpass(destination: str):
         return None
 
 
-ATTRACTION_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a local sightseeing and attraction specialist assistant. Your job is to provide a list of 3-5 realistic "
-        "sightseeing/attraction options in the destination {destination} based on the trip outline: {planner_draft}.\n"
-        "Here is some local attraction/sightseeing knowledge retrieved from our database:\n"
-        "{rag_context}\n\n"
-        "Take into consideration the user's preferences: {preferences}.\n"
-        "Return ONLY a raw JSON list of objects. Each object MUST contain these keys: name, description, entrance_fee, rating, recommended_time_spent.\n"
-        "Do not include markdown wrapper, explanation, or notes. Example output:\n"
-        '[{{"name": "Aguada Fort", "description": "A well-preserved seventeenth-century Portuguese fort and lighthouse.", "entrance_fee": 0.0, "rating": "4.4", "recommended_time_spent": "2 hours"}}, ...]'
-    ),
-    ("human", "Get attraction options.")
-])
-
 def attraction_node(state: TravelState) -> dict:
     print(f"--- ATTRACTION AGENT: Finding attractions in {state['destination']} ---")
     
@@ -145,42 +132,18 @@ def attraction_node(state: TravelState) -> dict:
     if live_attractions:
         return {"attractions": live_attractions}
     
-    # 2. Fallback to ChromaDB RAG + Local Qwen LLM
-    rag_context = retrieve_travel_knowledge(f"{state['destination']} attractions landmarks sightseeing fort beaches waterfalls dudhsagar entry fees museum tours", k=2)
-    
-    prompt_val = ATTRACTION_PROMPT.format_messages(
-        destination=state["destination"],
-        planner_draft=state.get("planner_draft") or "No draft outline",
-        preferences=state.get("preferences") or "None",
-        rag_context=rag_context or "No specific attraction database records found."
-    )
-    
-    response = llm.invoke(prompt_val)
-    
-    content = response.content.strip()
-    if content.startswith("```"):
-        content = "\n".join(content.split("\n")[1:])
-    if content.endswith("```"):
-        content = "\n".join(content.split("\n")[:-1])
-    content = content.strip()
-    
-    try:
-        attraction_data = json.loads(content)
-        if not isinstance(attraction_data, list):
-            attraction_data = [attraction_data]
-        return {
-            "attractions": attraction_data
-        }
-    except Exception as e:
-        print(f"Error parsing attraction JSON: {e}")
-        return {
-            "attractions": [
-                {
-                    "name": f"Famous City Center of {state['destination']}",
-                    "description": "Historical square and shopping streets.",
-                    "entrance_fee": 0.0,
-                    "rating": "4.0",
-                    "recommended_time_spent": "3 hours"
-                }
-            ]
-        }
+    # 2. Fallback to deterministic static attraction list
+    print(f"--- ATTRACTION AGENT: Using default deterministic attractions for {state['destination']} ---")
+    return {
+        "attractions": [
+            {
+                "name": f"Famous City Center of {state['destination']}",
+                "description": "Historical square and shopping streets.",
+                "entrance_fee": 0.0,
+                "rating": "4.0",
+                "recommended_time_spent": "3 hours",
+                "lat": 0.0,
+                "lon": 0.0
+            }
+        ]
+    }

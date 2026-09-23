@@ -1,4 +1,15 @@
-from typing import TypedDict, List, Dict, Any, Optional
+from typing import TypedDict, List, Dict, Any, Optional, Annotated
+
+def merge_steps(existing: List[str], new: List[str]) -> List[str]:
+    if existing is None:
+        existing = []
+    if new is None:
+        new = []
+    res = list(existing)
+    for step in new:
+        if step not in res:
+            res.append(step)
+    return res
 
 class TravelState(TypedDict):
     # Chat Input (Only used if the user uses the Chat UI)
@@ -24,7 +35,9 @@ class TravelState(TypedDict):
     reviewer_feedback: Optional[str]
     is_approved: bool
     
+    # Synthesis Output
+    final_itinerary: Optional[str]
+    
     # Execution Tracking
-    completed_steps: List[str]
+    completed_steps: Annotated[List[str], merge_steps]
     error_logs: Optional[List[str]]
-
