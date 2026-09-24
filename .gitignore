@@ -27,3 +27,5 @@ node_modules/
 .vite/
 .next/
 dist/
+chromadb_storage/
+*.sqlite3

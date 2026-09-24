@@ -37,7 +37,7 @@ async def fetch_place_details(client: httpx.AsyncClient, attraction_name: str, d
                 details_url = f"{PLACES_API_BASE_URL}/{place_id}"
                 details_headers = {
                     "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-                    "X-Goog-FieldMask": "id,displayName,currentOpeningHours,regularOpeningHours"
+                    "X-Goog-FieldMask": "id,displayName,currentOpeningHours,regularOpeningHours,photos,location,formattedAddress,rating,userRatingCount"
                 }
                 
                 details_resp = await client.get(details_url, headers=details_headers)
@@ -144,22 +144,59 @@ def opening_hours_node(state: TravelState) -> dict:
     validated_attractions = []
     
     for i, attr in enumerate(attractions):
-        # We assign an arbitrary day from the trip to validate against, or we validate for all days.
-        # For simplicity and to match the route agent, we'll validate against a specific day of the trip.
-        # Alternatively, we could attach the full schedule.
-        # Since the Route Agent loops `for i in range(days): attraction = attractions[i % len(attractions)]`,
-        # let's just validate it for the day it's most likely to be assigned, or we just validate it against the start date.
-        
         target_date = start_date + timedelta(days=i % days)
-        status, reason = determine_status(results[i], target_date)
+        res = results[i] if i < len(results) else {}
+        status, reason = determine_status(res, target_date)
         
         attr["status"] = status
         attr["reason"] = reason
-        attr["source"] = "Google Places API"
+        attr["source"] = res.get("api_source", "Live API")
         attr["scheduled_date"] = target_date.strftime("%Y-%m-%d")
         attr["day_of_week"] = target_date.strftime("%A")
-        attr["opening_hours"] = results[i].get("regularOpeningHours", {}).get("weekdayDescriptions", [])
         
+        # Opening hours
+        if res.get("api_source") == "google_places":
+            attr["opening_hours"] = res.get("regularOpeningHours", {}).get("weekdayDescriptions", [])
+            # Photos
+            photos = res.get("photos", [])
+            if photos and len(photos) > 0 and GOOGLE_PLACES_API_KEY:
+                photo_name = photos[0].get("name")
+                attr["thumbnail"] = f"https://places.googleapis.com/v1/{photo_name}/media?maxHeightPx=600&maxWidthPx=800&key={GOOGLE_PLACES_API_KEY}"
+            # Coordinates
+            loc = res.get("location", {})
+            if loc.get("latitude"):
+                attr["lat"] = loc.get("latitude")
+                attr["lon"] = loc.get("longitude")
+            if res.get("formattedAddress"):
+                attr["address"] = res.get("formattedAddress")
+            if res.get("rating"):
+                attr["rating"] = res.get("rating")
+            if res.get("userRatingCount"):
+                attr["reviews"] = res.get("userRatingCount")
+        elif res.get("api_source") == "serpapi":
+            # Convert dict hours to list of strings
+            op_dict = res.get("operating_hours", {})
+            if isinstance(op_dict, dict):
+                attr["opening_hours"] = [f"{day.title()}: {hours}" for day, hours in op_dict.items()]
+            elif isinstance(op_dict, list):
+                attr["opening_hours"] = op_dict
+            
+            # SerpAPI Thumbnail
+            if res.get("thumbnail"):
+                attr["thumbnail"] = res.get("thumbnail")
+            
+            # Coordinates
+            gps = res.get("gps_coordinates", {})
+            if gps.get("latitude"):
+                attr["lat"] = gps.get("latitude")
+                attr["lon"] = gps.get("longitude")
+            if res.get("address"):
+                attr["address"] = res.get("address")
+            if res.get("rating"):
+                attr["rating"] = res.get("rating")
+            if res.get("reviews"):
+                attr["reviews"] = res.get("reviews")
+
         validated_attractions.append(attr)
     
     return {

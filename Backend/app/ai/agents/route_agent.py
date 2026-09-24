@@ -70,11 +70,9 @@ def route_node(state: TravelState) -> dict:
         if attraction.get("status") == "UNKNOWN" and attraction.get("name") != "Local Walk":
             travel_tips += " ⚠️ WARNING: Live operational hours unavailable; please verify locally before visiting."
         
-        attraction_stop_name = f"{attraction.get('name', 'Attraction')} [{attraction.get('status', 'UNKNOWN').upper()}]"
-        
         daily_routes.append({
             "day": i + 1,
-            "stops": [hotel_name, attraction_stop_name, rest_name],
+            "stops": [hotel_name, attraction.get("name", "Attraction"), rest_name],
             "travel_tips": travel_tips
         })
         

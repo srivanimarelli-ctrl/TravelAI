@@ -34,6 +34,45 @@ export interface ActivitySegment {
   categoryColor: 'primary' | 'secondary' | 'tertiary';
   location?: string;
   cost?: number;
+  thumbnail?: string;
+  lat?: number;
+  lon?: number;
+  rating?: number | string;
+  reviews?: number;
+  recommendedTimeSpent?: string;
+  entranceFee?: number;
+  cuisine?: string;
+  operatingStatus?: 'OPEN' | 'CLOSED' | 'UNKNOWN';
+  operatingHours?: string[];
+  scheduledDate?: string;
+  dayOfWeek?: string;
+  statusReason?: string;
+}
+
+export type TravelMode = 'driving' | 'walking' | 'cab';
+
+export interface RouteStep {
+  instruction: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  name: string;
+  maneuverType?: string;
+  maneuverModifier?: string;
+}
+
+export interface RouteLeg {
+  fromTitle: string;
+  toTitle: string;
+  fromCoords: [number, number]; // [lat, lon]
+  toCoords: [number, number];   // [lat, lon]
+  mode: TravelMode;
+  distanceKm: number;
+  durationMins: number;
+  geometry: Array<[number, number]>; // Real street road coordinates [lat, lon]
+  steps: RouteStep[];
+  googleMapsUrl: string;
+  status: 'ok' | 'no_route' | 'fallback' | 'error';
+  errorMessage?: string;
 }
 
 export interface ItineraryDay {
@@ -42,6 +81,7 @@ export interface ItineraryDay {
   title: string;
   transitBadge: string;
   activities: ActivitySegment[];
+  legs?: RouteLeg[];
 }
 
 export interface FlightOption {
