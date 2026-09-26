@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { Layers, Map as MapIcon, Globe, Navigation } from 'lucide-react';
 import { ActivitySegment, RouteLeg } from '../../types';
 
 interface DayMapViewProps {
@@ -11,6 +12,26 @@ interface DayMapViewProps {
   onSelectLeg?: (index: number) => void;
 }
 
+type MapLayerType = 'street' | 'satellite' | 'osm';
+
+const MAP_TILE_CONFIGS: Record<MapLayerType, { url: string; attribution: string; maxZoom: number }> = {
+  street: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+    maxZoom: 19,
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 19,
+  },
+  osm: {
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  },
+};
+
 export const DayMapView: React.FC<DayMapViewProps> = ({ 
   activities, 
   destination, 
@@ -21,6 +42,25 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const [mapLayer, setMapLayer] = useState<MapLayerType>('street');
+
+  // Switch tile layer on user selection
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    const config = MAP_TILE_CONFIGS[mapLayer];
+    const newLayer = L.tileLayer(config.url, {
+      attribution: config.attribution,
+      maxZoom: config.maxZoom,
+    }).addTo(mapInstanceRef.current);
+
+    tileLayerRef.current = newLayer;
+  }, [mapLayer]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -36,7 +76,6 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
       location?: string;
     }> = [];
 
-    // Fallback coordinates for common destinations if specific lat/lon is missing
     const fallbackCoords: Record<string, [number, number]> = {
       delhi: [28.6139, 77.2090],
       goa: [15.2993, 74.1240],
@@ -61,7 +100,6 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
       let lon = act.lon;
 
       if (!lat || !lon || lat === 0 || lon === 0) {
-        // Offset slightly around destination center for visual route representation
         const offsetLat = (idx === 0 ? 0.02 : idx === 1 ? -0.015 : 0.01) + (Math.sin(dayNumber + idx) * 0.008);
         const offsetLon = (idx === 0 ? -0.015 : idx === 1 ? 0.02 : 0.015) + (Math.cos(dayNumber + idx) * 0.008);
         lat = defaultCenter[0] + offsetLat;
@@ -87,7 +125,7 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
       mapInstanceRef.current = null;
     }
 
-    // Initialize Map
+    // Initialize Map with smooth rendering
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
       scrollWheelZoom: false,
@@ -95,27 +133,30 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
 
     mapInstanceRef.current = map;
 
-    // Dark styled OpenStreetMap tiles for luxury aesthetic
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 19,
+    // Add initial razor-sharp tile layer
+    const config = MAP_TILE_CONFIGS[mapLayer];
+    const initialTileLayer = L.tileLayer(config.url, {
+      attribution: config.attribution,
+      maxZoom: config.maxZoom,
     }).addTo(map);
+
+    tileLayerRef.current = initialTileLayer;
 
     const allRoutePoints: L.LatLngTuple[] = [];
 
     // 1. Draw Real Street-level OSRM Road Geometry if available
     if (legs && legs.length > 0) {
       legs.forEach((leg, idx) => {
-        const isSelectedLeg = idx === activeLegIndex;
+        const isSelectedLeg = activeLegIndex === -1 || idx === activeLegIndex;
         const polyCoords: L.LatLngTuple[] = leg.geometry.map((c) => [c[0], c[1]]);
 
         polyCoords.forEach((p) => allRoutePoints.push(p));
 
         if (polyCoords.length > 0) {
-          // Draw outer line for selected leg highlight
+          // Outer subtle glow for active leg
           if (isSelectedLeg) {
             L.polyline(polyCoords, {
-              color: '#38bdf8',
+              color: '#0284c7',
               weight: 8,
               opacity: 0.35,
               lineCap: 'round',
@@ -125,9 +166,9 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
 
           // Main road route line
           const line = L.polyline(polyCoords, {
-            color: isSelectedLeg ? '#0284c7' : '#94a3b8',
+            color: isSelectedLeg ? '#0284c7' : '#64748b',
             weight: isSelectedLeg ? 5 : 3.5,
-            opacity: isSelectedLeg ? 0.95 : 0.65,
+            opacity: isSelectedLeg ? 1.0 : 0.65,
             dashArray: isSelectedLeg ? undefined : '6, 6',
           }).addTo(map);
 
@@ -195,7 +236,7 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
         .bindPopup(popupContent);
     });
 
-    // 3. Fit Bounds to entire road route or active leg
+    // 3. Fit Bounds to entire road route
     if (allRoutePoints.length > 1) {
       const bounds = L.latLngBounds(allRoutePoints);
       map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
@@ -214,11 +255,61 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
   }, [activities, destination, dayNumber, legs, activeLegIndex, onSelectLeg]);
 
   return (
-    <div className="relative w-full h-72 sm:h-80 rounded-2xl overflow-hidden shadow-lg border border-surface-container-highest/60">
+    <div className="relative w-full h-full min-h-[350px] lg:min-h-[500px] rounded-2xl overflow-hidden shadow-lg border border-surface-container-highest/60">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
-      <div className="absolute top-3 right-3 z-[400] bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-surface-container-highest/60 text-xs font-semibold text-on-surface shadow-md flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-        <span>Day {dayNumber} Street Road Map</span>
+
+      {/* Floating Status & Map Style Switcher Controls */}
+      <div className="absolute top-3 right-3 z-[400] flex items-center gap-2">
+        {/* Layer Selector Pill */}
+        <div className="bg-surface-container-lowest/90 backdrop-blur-md p-1 rounded-xl border border-surface-container-highest/70 text-xs font-semibold shadow-md flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setMapLayer('street')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[11px] ${
+              mapLayer === 'street'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'
+            }`}
+            title="Crisp Street Map"
+          >
+            <MapIcon className="w-3 h-3" />
+            <span>Street</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMapLayer('satellite')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[11px] ${
+              mapLayer === 'satellite'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'
+            }`}
+            title="High-Res Satellite Imagery"
+          >
+            <Globe className="w-3 h-3" />
+            <span>Satellite</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMapLayer('osm')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[11px] ${
+              mapLayer === 'osm'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest'
+            }`}
+            title="Standard OpenStreetMap"
+          >
+            <Layers className="w-3 h-3" />
+            <span>OSM</span>
+          </button>
+        </div>
+
+        {/* Day Badge */}
+        <div className="hidden sm:flex bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-surface-container-highest/70 text-xs font-semibold text-on-surface shadow-md items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>Day {dayNumber} Street Map</span>
+        </div>
       </div>
     </div>
   );

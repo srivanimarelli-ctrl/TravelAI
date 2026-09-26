@@ -98,3 +98,31 @@ def get_trip_history(x_user_id: Optional[str] = Header(None)):
         )
         
     return trips_list
+
+@router.delete("/{id}")
+def delete_trip(id: str, x_user_id: Optional[str] = Header(None)):
+    print(f"--- API: Deleting trip '{id}' for user '{x_user_id}' ---")
+    try:
+        from bson import ObjectId
+        from bson.errors import InvalidId
+        try:
+            query = {"_id": ObjectId(id)}
+        except InvalidId:
+            # If not a valid ObjectId, try deleting by string id if that's how it's stored
+            query = {"id": id}
+            
+        if x_user_id:
+            query["user_id"] = x_user_id
+            
+        result = db.trips.delete_one(query)
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Trip not found")
+            
+        return {"status": "deleted", "trip_id": id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to delete trip: {str(e)}"
+        )

@@ -2209,6 +2209,24 @@ export async function fetchSavedTripsList(): Promise<SavedTripSnippet[]> {
   }
 }
 
+export async function deleteTrip(tripId: string): Promise<void> {
+  // If it's a client preset or temporary trip, it is not on the server
+  if (!tripId || tripId.startsWith('trip-') || ['goa-coastal-v24', 'tokyo-explorer', 'paris-weekend', 'new-york-culture', 'swiss-alps-adventure'].includes(tripId)) {
+    return;
+  }
+  try {
+    await apiFetch<any>(`/api/trips/${tripId}`, {
+      method: 'DELETE',
+    });
+  } catch (err: any) {
+    const msg = (err?.message || '').toLowerCase();
+    if (msg.includes('not found') || msg.includes('404')) {
+      return;
+    }
+    throw err;
+  }
+}
+
 // 3. POST /api/chat/message (EXACTLY { message, conversation_id })
 export interface ChatMessageResponsePayload {
   conversation_id: string;

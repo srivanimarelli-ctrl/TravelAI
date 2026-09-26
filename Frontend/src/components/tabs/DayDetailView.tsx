@@ -65,11 +65,19 @@ const VENUE_IMAGE_MAP: Array<{ keywords: string[]; url: string }> = [
   // Dining & Restaurants
   { keywords: ['karim', 'mughlai', 'kebab'], url: 'https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&w=1000&q=80' },
   { keywords: ['bukhara', 'tandoori', 'dal bukhara'], url: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=1000&q=80' },
-  { keywords: ['indian accent', 'bistro', 'haute'], url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=80' },
-  { keywords: ['saravana', 'dosa', 'south indian'], url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?auto=format&fit=crop&w=1000&q=80' },
-  { keywords: ['gulati', 'butter chicken'], url: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&w=1000&q=80' },
-  { keywords: ['fisherman', 'seafood', 'fish curry'], url: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1000&q=80' },
-  { keywords: ['1135 ad', 'thali', 'handi', 'laal maas'], url: 'https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['indian accent', 'bistro', 'haute', 'gourmet'], url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['saravana', 'dosa', 'south indian', 'idli'], url: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['gulati', 'butter chicken', 'curry'], url: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['fisherman', 'seafood', 'fish curry', 'crab'], url: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['1135 ad', 'thali', 'handi', 'laal maas', 'rajasthani'], url: 'https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['traditional food', 'culinary', 'restaurant', 'food spot', 'cafe', 'bistro'], url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80' },
+
+  // Luxury Accommodations & Hotels
+  { keywords: ['pavilion', 'de pavilion'], url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['imperial', 'itc maurya', 'the leela', 'luxury hotel'], url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['taj mahal hotel', 'taj hotel', 'taj resort'], url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['resort', 'beachfront', 'pool'], url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80' },
+  { keywords: ['hotel', 'check-in', 'stay', 'suite', 'boutique'], url: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1000&q=80' },
 ];
 
 export function resolvePlaceImage(act: ActivitySegment, destination?: string): string {
@@ -336,7 +344,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   onSelectDay,
 }) => {
   const [legs, setLegs] = useState<RouteLeg[]>([]);
-  const [activeLegIndex, setActiveLegIndex] = useState<number>(0);
+  const [activeLegIndex, setActiveLegIndex] = useState<number>(-1);
   const [selectedMode, setSelectedMode] = useState<TravelMode>('driving');
   const [isLoadingRoutes, setIsLoadingRoutes] = useState<boolean>(false);
 
@@ -485,37 +493,52 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Interactive Route Map with GPS Waypoints and Road Polylines */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span>Interactive Waypoints & Street Route Map</span>
-          </h3>
-          <span className="text-[11px] text-on-surface-variant font-medium">Click routes or markers to view details</span>
+      {/* Interactive Route Map and Turn-by-Turn Directions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Map */}
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span>Interactive Waypoints & Street Route Map</span>
+            </h3>
+            <span className="text-[11px] text-on-surface-variant font-medium">Click routes or markers to view details</span>
+          </div>
+
+          <div className="flex-1 min-h-[400px]">
+            <DayMapView
+              activities={day.activities}
+              destination={trip?.destination}
+              dayNumber={day.dayNumber}
+              legs={legs}
+              activeLegIndex={activeLegIndex}
+              onSelectLeg={(idx) => setActiveLegIndex(idx)}
+            />
+          </div>
         </div>
 
-        <DayMapView
-          activities={day.activities}
-          destination={trip?.destination}
-          dayNumber={day.dayNumber}
-          legs={legs}
-          activeLegIndex={activeLegIndex}
-          onSelectLeg={(idx) => setActiveLegIndex(idx)}
-        />
+        {/* Right Column: Directions Drawer */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col h-[500px] lg:h-auto max-h-[600px]">
+          {legs.length > 0 ? (
+            <RouteDirectionsDrawer
+              legs={legs}
+              activeLegIndex={activeLegIndex}
+              onSelectLeg={(idx) => setActiveLegIndex(idx)}
+              selectedMode={selectedMode}
+              onChangeMode={(mode) => setSelectedMode(mode)}
+              isLoading={isLoadingRoutes}
+            />
+          ) : (
+            <div className="h-full rounded-2xl bg-surface-container border border-surface-container-highest/60 shadow-sm p-6 flex flex-col items-center justify-center text-center">
+              <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center mb-3">
+                <Compass className="w-6 h-6 text-on-surface-variant" />
+              </div>
+              <p className="text-sm font-semibold text-on-surface">No directions available</p>
+              <p className="text-xs text-on-surface-variant mt-1">Need at least 2 stops to calculate a route.</p>
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Interactive Turn-by-Turn Directions Drawer */}
-      {legs.length > 0 && (
-        <RouteDirectionsDrawer
-          legs={legs}
-          activeLegIndex={activeLegIndex}
-          onSelectLeg={(idx) => setActiveLegIndex(idx)}
-          selectedMode={selectedMode}
-          onChangeMode={(mode) => setSelectedMode(mode)}
-          isLoading={isLoadingRoutes}
-        />
-      )}
 
       {/* Deep Dive Activities Sequence */}
       <div className="space-y-3 pt-2">

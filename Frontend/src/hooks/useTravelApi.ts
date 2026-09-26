@@ -43,6 +43,7 @@ import {
   buildChatPromptWithFallbackContext,
   mergeTravelContexts,
   checkTripPlanningConstraints,
+  deleteTrip,
 } from '../services/api';
 
 export function useTravelApi() {
@@ -615,10 +616,12 @@ export function useTravelApi() {
   };
 
   // Handler: Delete saved trip
-  const handleDeleteTrip = (id: string, e: React.MouseEvent) => {
+  const handleDeleteTrip = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      // Persist deleted trip ID
+      await deleteTrip(id);
+      
+      // Persist deleted trip ID locally as fallback
       try {
         const deleted = JSON.parse(localStorage.getItem('TRAVELAI_DELETED_TRIP_IDS') || '[]');
         if (!deleted.includes(id)) {
@@ -639,7 +642,9 @@ export function useTravelApi() {
           syncTripState(next);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to delete trip from server';
+      setErrorMessage(`Failed to delete trip: ${errMsg}`);
       console.warn(`Failed to delete saved trip ${id}:`, err);
     }
   };
