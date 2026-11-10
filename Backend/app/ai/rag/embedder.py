@@ -1,11 +1,10 @@
-import os
-from langchain_ollama import OllamaEmbeddings
+"""Create the optional embedding client only when retrieval is explicitly enabled."""
 
-# Retrieve the Ollama URL from environment variables
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
-# Initialize the Ollama Embeddings using the nomic-embed-text model
-embeddings = OllamaEmbeddings(
-    base_url=OLLAMA_BASE_URL,
-    model="nomic-embed-text"
-)
+def get_embeddings(config):
+    from langchain_ollama import OllamaEmbeddings
+    return OllamaEmbeddings(
+        base_url=config.ollama_url,
+        model='nomic-embed-text',  # Preserve compatibility with existing indexed guides.
+        client_kwargs={'timeout': config.timeout_seconds},
+    )

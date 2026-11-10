@@ -5,18 +5,28 @@ import hashlib
 # Add the Backend root directory to the system path so we can import from app
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.ai.rag.chroma_client import vector_store
+from dotenv import load_dotenv
+load_dotenv()
+from app.ai.rag.config import settings
 
 # Set path to the knowledge folder
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "knowledge")
 
 def ingest_documents():
-    # 1. Create the knowledge folder if it doesn't exist
+    if not settings().enabled:
+        print('RAG is disabled. Set RAG_ENABLED=true and install requirements-rag.txt before ingesting guides.')
+        return False
+    try:
+        from langchain_community.document_loaders import DirectoryLoader, TextLoader
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        from app.ai.rag.chroma_client import get_vector_store
+        vector_store = get_vector_store()
+    except Exception as error:
+        print(f'RAG initialization unavailable ({type(error).__name__}). Check optional dependencies and storage configuration.')
+        return False
+    # 1. Read source guides only; never create or seed knowledge implicitly.
     if not os.path.exists(KNOWLEDGE_DIR):
-        os.makedirs(KNOWLEDGE_DIR)
-        print(f"--- RAG INGESTION: Created knowledge folder at {KNOWLEDGE_DIR} ---")
+        print(f"--- RAG INGESTION: Knowledge folder not found: {KNOWLEDGE_DIR} ---")
         print("Please place your travel guide text files (.txt) inside this folder and run again.")
         return
 
@@ -32,7 +42,7 @@ def ingest_documents():
     try:
         docs = loader.load()
     except Exception as e:
-        print(f"Error loading files from knowledge directory: {e}")
+        print(f"Unable to load knowledge documents ({type(e).__name__})")
         return
     
     if not docs:
@@ -58,9 +68,12 @@ def ingest_documents():
             print(f"Processing batch {batch_num}/{total_batches} (Chunks {i} to {min(i + batch_size, total_chunks)})...")
             identities = [hashlib.sha256((doc.metadata.get('source', '') + '\n' + doc.page_content).encode()).hexdigest() for doc in batch]
             vector_store.add_documents(batch, ids=identities)
+        from app.ai.rag.retriever import clear_cache
+        clear_cache()
         print("--- RAG INGESTION: Ingestion completed successfully! ---")
+        return True
     except Exception as e:
-        print(f"Error inserting documents into ChromaDB: {e}")
+        print(f"Unable to index knowledge documents ({type(e).__name__}). Check the embedding service and storage configuration.")
 
 if __name__ == "__main__":
-    ingest_documents()
+    sys.exit(0 if ingest_documents() else 1)

@@ -1,17 +1,25 @@
-import os
-from langchain_community.vectorstores import Chroma
-from app.ai.rag.embedder import embeddings
+"""Lazy optional Chroma store. Disabled RAG performs no database initialization."""
+import threading
+from app.ai.rag.config import settings
 
-# Define the local database directory path
-DB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 
-    "chromadb_storage"
-)
+_lock = threading.Lock()
+_store = None
+_store_config = None
 
-# Initialize LangChain's Chroma wrapper
-# This automatically handles directory creation, collections, and vector search
-vector_store = Chroma(
-    collection_name="travel_knowledge",
-    embedding_function=embeddings,
-    persist_directory=DB_PATH
-)
+
+def get_vector_store():
+    global _store, _store_config
+    config = settings()
+    if not config.enabled:
+        return None
+    with _lock:
+        if _store is None or _store_config != config:
+            from langchain_community.vectorstores import Chroma
+            from chromadb.config import Settings
+            from app.ai.rag.embedder import get_embeddings
+            store = Chroma(collection_name='travel_knowledge',
+                           embedding_function=get_embeddings(config),
+                           client_settings=Settings(anonymized_telemetry=False, is_persistent=True),
+                           persist_directory=config.persist_directory)
+            _store, _store_config = store, config
+        return _store

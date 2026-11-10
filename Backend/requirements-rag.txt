@@ -1,0 +1,6 @@
+# Optional regional-guide retrieval. Core deployment uses requirements.txt only.
+-r requirements.txt
+langchain-ollama==1.1.0
+langchain-community==0.4.2
+chromadb==1.5.9
+langchain-text-splitters==1.1.2
