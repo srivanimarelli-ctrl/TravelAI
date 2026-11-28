@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 
 # Inject backend URL at build time
-ARG VITE_FASTAPI_URL=http://localhost:8000
+ARG VITE_FASTAPI_URL=https://backend-production-39912.up.railway.app
 ENV VITE_FASTAPI_URL=$VITE_FASTAPI_URL
 
 RUN npm run build
