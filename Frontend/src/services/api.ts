@@ -2626,3 +2626,68 @@ export async function restoreTripRevision(
     }),
   });
 }
+
+// -------------------------------------------------------------
+// Admin & Dynamic Private Travel Services Endpoints
+// -------------------------------------------------------------
+
+export async function fetchAdminStats(): Promise<{
+  success: boolean;
+  metrics: {
+    total_users: number;
+    total_trips: number;
+    successful_trips: number;
+    failed_trips: number;
+    in_progress_trips: number;
+    total_conversations: number;
+  };
+  popular_destinations: { destination: string; count: number }[];
+  system_health: {
+    mongodb: { status: string; latency_ms: number; database: string };
+    groq_llm: { status: string; model: string };
+    serpapi: { status: string; plan?: string; searches_per_month?: number; total_searches_left?: number };
+  };
+  timestamp: string;
+}> {
+  return apiFetch('/api/admin/stats');
+}
+
+export async function fetchAdminUsers(): Promise<{ success: boolean; count: number; users: any[] }> {
+  return apiFetch('/api/admin/users');
+}
+
+export async function toggleUserStatus(userId: string, isActive: boolean): Promise<{ success: boolean; message: string; is_active: boolean }> {
+  return apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: isActive }),
+  });
+}
+
+export async function fetchAdminActivity(): Promise<{ success: boolean; count: number; activity: any[] }> {
+  return apiFetch('/api/admin/activity');
+}
+
+export async function fetchAdminLogs(): Promise<{ success: boolean; count: number; logs: any[] }> {
+  return apiFetch('/api/admin/logs');
+}
+
+export async function fetchAdminFeedback(): Promise<{ success: boolean; count: number; feedback: any[] }> {
+  return apiFetch('/api/admin/feedback');
+}
+
+export async function submitUserFeedback(feedback: { trip_id?: string; rating: number; category?: string; comment: string }): Promise<{ success: boolean; message: string; id: string }> {
+  return apiFetch('/api/admin/feedback', {
+    method: 'POST',
+    body: JSON.stringify(feedback),
+  });
+}
+
+export async function fetchPrivateTravelServices(
+  destination: string,
+  limit: number = 12
+): Promise<{ destination: string; providers: any[]; cached: boolean; count: number }> {
+  if (!destination || !destination.trim()) {
+    return { destination: '', providers: [], cached: false, count: 0 };
+  }
+  return apiFetch(`/api/trips/private-services?destination=${encodeURIComponent(destination.trim())}&limit=${limit}`);
+}

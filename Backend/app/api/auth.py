@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field, field_validator
 from pymongo.errors import DuplicateKeyError
@@ -43,12 +44,17 @@ def register(req: RegisterRequest):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email is already registered. Please login instead.")
 
+    admin_emails = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "pareshsanka@gmail.com,admin@travelai.com").split(",") if e.strip()]
+    assigned_role = "admin" if email_clean in admin_emails else "user"
+
     # Hash password and store in MongoDB
     hashed_pwd = hash_password(req.password)
     user_doc = {
         "name": name_clean,
         "email": email_clean,
         "password": hashed_pwd,
+        "role": assigned_role,
+        "is_active": True,
         "created_at": datetime.utcnow()
     }
     
@@ -59,7 +65,7 @@ def register(req: RegisterRequest):
     user_id = str(res.inserted_id)
     token = generate_token(email_clean, user_id)
 
-    print(f"--- AUTH: New user registered in MongoDB: {name_clean} ({email_clean}) [ID: {user_id}] ---")
+    print(f"--- AUTH: New user registered in MongoDB: {name_clean} ({email_clean}) [Role: {assigned_role}] [ID: {user_id}] ---")
 
     return {
         "success": True,
@@ -67,7 +73,9 @@ def register(req: RegisterRequest):
         "user": {
             "id": user_id,
             "name": name_clean,
-            "email": email_clean
+            "email": email_clean,
+            "role": assigned_role,
+            "is_active": True
         }
     }
 
@@ -83,10 +91,19 @@ def login(req: LoginRequest):
     if not verify_password(user.get("password", ""), req.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact an administrator.")
+
+    admin_emails = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "pareshsanka@gmail.com,admin@travelai.com").split(",") if e.strip()]
+    user_role = user.get("role", "user")
+    if email_clean in admin_emails and user_role != "admin":
+        db.users.update_one({"_id": user["_id"]}, {"$set": {"role": "admin"}})
+        user_role = "admin"
+
     user_id = str(user["_id"])
     token = generate_token(email_clean, user_id)
 
-    print(f"--- AUTH: User logged in from MongoDB: {user.get('name')} ({email_clean}) ---")
+    print(f"--- AUTH: User logged in from MongoDB: {user.get('name')} ({email_clean}) [Role: {user_role}] ---")
 
     return {
         "success": True,
@@ -94,14 +111,32 @@ def login(req: LoginRequest):
         "user": {
             "id": user_id,
             "name": user.get("name", email_clean.split("@")[0]),
-            "email": email_clean
+            "email": email_clean,
+            "role": user_role,
+            "is_active": True
         }
     }
 
 @router.get("/me")
 def get_current_user(user_id: str = Depends(require_user_id)):
     user = db.users.find_one({"_id": ObjectId(user_id)})
-    return {"user": {"id": user_id, "name": user["name"], "email": user["email"]}}
+    if not user:
+        raise HTTPException(status_code=401, detail="User account not found")
+    admin_emails = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "pareshsanka@gmail.com,admin@travelai.com").split(",") if e.strip()]
+    user_email = user.get("email", "").lower().strip()
+    user_role = user.get("role", "user")
+    if user_email in admin_emails and user_role != "admin":
+        db.users.update_one({"_id": user["_id"]}, {"$set": {"role": "admin"}})
+        user_role = "admin"
+    return {
+        "user": {
+            "id": user_id,
+            "name": user["name"],
+            "email": user["email"],
+            "role": user_role,
+            "is_active": user.get("is_active", True)
+        }
+    }
 
 
 @router.post("/logout")

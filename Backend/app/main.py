@@ -25,6 +25,7 @@ from app.api.chat import router as chat_router
 from app.api.auth import router as auth_router
 from app.api.payments import router as payments_router
 from app.api.bookings import router as bookings_router
+from app.api.admin import router as admin_router
 from contextlib import asynccontextmanager
 from app.database.mongodb import db, client
 from app.services.conversation_service import setup_indexes
@@ -49,6 +50,8 @@ async def lifespan(app):
         from app.services.booking_service import setup_indexes as setup_payment_indexes
         setup_payment_indexes(db)
         db.conversations.create_index([("user_id", 1), ("updated_at", -1)])
+        db.private_services_cache.create_index("destination_key", unique=True)
+        db.private_services_cache.create_index("expires_at", expireAfterSeconds=0)
     except Exception as index_err:
         logging.getLogger('travelai.api').warning("Optional index creation deferred: %s", index_err)
     yield
@@ -111,6 +114,7 @@ app.include_router(chat_router, tags=["Chat"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(payments_router, prefix='/api/payments', tags=['Demo payments'])
 app.include_router(bookings_router, prefix='/api/bookings', tags=['Demo bookings'])
+app.include_router(admin_router, prefix="/api/admin", tags=["Admin"])
 
 # Direct Flights API route alias
 from app.api.trips import search_flights_endpoint

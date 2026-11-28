@@ -3,6 +3,7 @@ import { useContentFade } from '../motion/useInteractionMotion';
 import React, { useEffect, useState } from 'react';
 import { TripPlusCard } from '../components/TripPlusCard';
 import { BookDemoButton } from '../components/BookDemoButton';
+import { PrivateTravelServicesSection } from '../components/PrivateTravelServicesSection';
 import { DemoOrder, formatMoney, paymentApi, productLabel } from '../services/payments';
 import { TripSummary, FlightOption, HotelOption } from '../types';
 
@@ -48,6 +49,7 @@ export const BookingsDeskPage: React.FC<BookingsDeskPageProps> = ({ trip, flight
       </section>
     </div>
     {trip && <SampleDemoBookings flight={sampleFlight} hotel={sampleHotel} onBook={onBook} />}
+    {trip && <PrivateTravelServicesSection destination={trip.destination} />}
     {trip && <TripPlusCard trip={trip} onUpgrade={onUpgrade} onBookings={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />}
     <section className="p-5 sm:p-6 rounded-2xl bg-surface-container space-y-4"><h2 className="font-semibold">My demo bookings</h2>{error ? <p role="alert">{error}</p> : loading ? <p role="status">Loading demo bookings…</p> : !orders.length ? <p className="text-sm text-on-surface-variant">No demo bookings for this trip yet. Selecting an option does not create a booking.</p> : <ul className="divide-y divide-surface-container-high">{orders.map(order => <li key={order.id} className="py-4 flex flex-wrap justify-between items-center gap-3"><div><p className="font-medium">{order.booking?.name} · {productLabel(order)}</p><p className="text-sm text-on-surface-variant">{formatMoney(order.amount, order.currency)} · {order.status}{order.booking?.source === 'sample' ? ' · Fictional sample' : ''}</p></div><button className="rounded-lg border border-primary/30 px-3 py-2 text-primary text-sm" onClick={() => onOpenOrder(order.id)}>{order.status === 'succeeded' ? 'View demo booking' : 'Open demo order'}</button></li>)}</ul>}</section>
     <button className="px-4 py-2 rounded-lg bg-primary text-on-primary" onClick={onGoToStudio}>Open Planner Studio</button>

@@ -64,6 +64,12 @@ class FlightSearchRequest(BaseModel):
     budget: Optional[float] = None
     travelers: Optional[int] = Field(default=1, ge=1, le=20)
 
+@router.get("/private-services")
+def get_private_services_endpoint(destination: str, limit: Optional[int] = 12):
+    """Destination-based dynamic private travel service discovery (tour guides, cabs, agencies)."""
+    from app.services.private_services import get_cached_private_services
+    return get_cached_private_services(destination, limit=limit or 12)
+
 @router.post("/flights/search")
 def search_flights_endpoint(request: FlightSearchRequest, user_id: str = Depends(require_user_id)):
     """Real-time flight search endpoint leveraging SerpApi Google Flights."""

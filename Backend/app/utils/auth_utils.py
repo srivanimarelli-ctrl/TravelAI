@@ -57,6 +57,34 @@ def require_user_id(authorization: Optional[str] = Header(None)) -> str:
         valid_user = session and db.users.find_one({"_id": ObjectId(session["user_id"])})
     except (KeyError, ValueError, TypeError):
         valid_user = None
-    if not valid_user:
-        raise HTTPException(status_code=401, detail="Session expired or invalid. Please log in.")
+    if not valid_user or not valid_user.get("is_active", True):
+        raise HTTPException(status_code=401, detail="Session expired, invalid, or account deactivated.")
     return session["user_id"]
+
+
+def require_admin(authorization: Optional[str] = Header(None)) -> dict:
+    user_id = require_user_id(authorization)
+    try:
+        user = db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        user = None
+    if not user:
+        raise HTTPException(status_code=401, detail="User account not found.")
+
+    admin_emails = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "pareshsanka@gmail.com,admin@travelai.com").split(",") if e.strip()]
+    user_email = user.get("email", "").lower().strip()
+
+    is_admin = user.get("role") == "admin" or user_email in admin_emails
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Access denied. Admin privileges required.")
+
+    if user.get("role") != "admin":
+        db.users.update_one({"_id": user["_id"]}, {"$set": {"role": "admin"}})
+        user["role"] = "admin"
+
+    return {
+        "id": str(user["_id"]),
+        "name": user.get("name", "Admin"),
+        "email": user_email,
+        "role": "admin"
+    }

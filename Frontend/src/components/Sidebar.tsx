@@ -14,13 +14,15 @@ import {
   ChevronRight,
   Server,
   X,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { ApiStatusState, ConversationHistoryItem, SavedTripSnippet } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
-  activePage: 'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments';
-  onSelectPage: (page: 'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments') => void;
+  activePage: 'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments' | 'admin-dashboard';
+  onSelectPage: (page: 'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments' | 'admin-dashboard') => void;
   conversations: ConversationHistoryItem[];
   isLoadingConversations?: boolean;
   savedTrips: SavedTripSnippet[];
@@ -63,13 +65,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const sidebar = useRef<HTMLElement>(null);
   const desktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => true);
   useModalFocus(sidebar, isMobileOpen && !desktop, () => onCloseMobile?.());
-  const links = [
+  const { user } = useAuth();
+  const baseLinks = [
     { id: 'planner-studio', label: 'Plan', Icon: Compass, color: 'text-primary' },
     { id: 'itinerary-hub', label: 'My trips', Icon: CalendarDays, color: 'text-tertiary' },
     { id: 'bookings-desk', label: 'Travel Selections', Icon: Plane, color: 'text-secondary' },
     { id: 'ai-places-memory', label: 'Places & Memory', Icon: Sparkles, color: 'text-primary' },
     { id: 'payments', label: 'Payments', Icon: CreditCard, color: '' },
   ] as const;
+  const links = user?.role === 'admin'
+    ? [...baseLinks, { id: 'admin-dashboard' as const, label: 'Admin Dashboard', Icon: ShieldCheck, color: 'text-primary font-bold' }]
+    : baseLinks;
   return (
     <>
       {/* Mobile Backdrop */}

@@ -23,6 +23,7 @@ import { fetchTrip } from './services/api';
 import { useTripBookings, TripBookingsContext } from './hooks/useTripBookings';
 import { paymentApi, orderUrl } from './services/payments';
 const PaymentsPage = lazy(() => import('./pages/PaymentsPage').then(module => ({ default: module.PaymentsPage })));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage').then(module => ({ default: module.AdminDashboardPage })));
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -369,6 +370,15 @@ function AppContent() {
                   setActivePage('planner-studio');
                 }}
               />
+            </ErrorBoundary>
+          )}
+
+          {activePage === 'admin-dashboard' && (
+            <ErrorBoundary
+              fallbackTitle="Admin Dashboard Error"
+              fallbackMessage="An unexpected error occurred while loading the Admin Dashboard. Ensure your account has administrator privileges."
+            >
+              <AdminDashboardPage onGoToStudio={() => setActivePage('planner-studio')} />
             </ErrorBoundary>
           )}
         </main>

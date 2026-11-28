@@ -57,8 +57,8 @@ export function useTravelApi() {
     return `TRAVELAI_PROMPT:${owner}:${id || 'new'}`;
   };
   // Navigation & View states
-  const [activePage, setActivePage] = useState<'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments'>(() => new URL(window.location.href).searchParams.has('payment_order') ? 'payments' : 'planner-studio');
-  const [activeDashboardTab, setActiveDashboardTab] = useState<'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab'>(() => { const value = new URL(window.location.href).searchParams.get('tab'); return ['companion-tab','route-tab','flights-tab','hotels-tab','weather-tab','budget-tab'].includes(value || '') ? value as 'route-tab' : 'route-tab'; });
+  const [activePage, setActivePage] = useState<'planner-studio' | 'itinerary-hub' | 'bookings-desk' | 'ai-places-memory' | 'payments' | 'admin-dashboard'>(() => new URL(window.location.href).searchParams.has('payment_order') ? 'payments' : 'planner-studio');
+  const [activeDashboardTab, setActiveDashboardTab] = useState<'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab' | 'services-tab'>(() => { const value = new URL(window.location.href).searchParams.get('tab'); return ['companion-tab','route-tab','flights-tab','hotels-tab','weather-tab','budget-tab','services-tab'].includes(value || '') ? value as 'route-tab' : 'route-tab'; });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => window.innerWidth >= 1024 && window.innerWidth < 1600);
   useEffect(() => {
     const laptop = window.matchMedia('(min-width: 1024px) and (max-width: 1599px)');

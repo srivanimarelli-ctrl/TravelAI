@@ -35,6 +35,7 @@ import { WeatherTab, type WeatherData } from './tabs/WeatherTab';
 import { BudgetTab } from './tabs/BudgetTab';
 import { CompanionMode } from './tabs/CompanionMode';
 import { TripReadiness } from './TripReadiness';
+import { PrivateTravelServicesSection } from './PrivateTravelServicesSection';
 
 interface DashboardPanelProps {
   onOpenChat: () => void;
@@ -49,8 +50,8 @@ interface DashboardPanelProps {
   nearbyHotels?: HotelOption[];
   weather: WeatherCondition | null;
   budget: BudgetOverview | null;
-  activeTab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab';
-  onSwitchTab: (tab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab') => void;
+  activeTab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab' | 'services-tab';
+  onSwitchTab: (tab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab' | 'services-tab') => void;
   onSelectFlight: (id: string) => Promise<boolean>;
   onSelectHotel: (id: string) => Promise<boolean>;
   onUpdateExecutionState?: (updates: Partial<ExecutionState>) => Promise<boolean>;
@@ -248,6 +249,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
           { key: 'days', label: 'Days & map', tab: 'route-tab', mode: 'days', Icon: CalendarDays },
           { key: 'flights', label: `Flights (${flights.length})`, tab: 'flights-tab', Icon: Plane },
           { key: 'hotels', label: `Hotels (${hotels.length})`, tab: 'hotels-tab', Icon: Hotel },
+          { key: 'services', label: 'Private Services', tab: 'services-tab', Icon: Compass },
           { key: 'weather', label: 'Weather Forecast', tab: 'weather-tab', Icon: CloudSun },
           { key: 'budget', label: 'Budget Auditor', tab: 'budget-tab', Icon: Wallet },
         ] as const).map(item => {
@@ -294,6 +296,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         )}
         {activeTab === 'weather-tab' && <WeatherTab key={trip?.id} tripId={trip?.id} weather={weather} destination={trip?.destination} onTripForecast={saveTripForecast} />}
         {activeTab === 'budget-tab' && <BudgetTab budget={budget} />}
+        {activeTab === 'services-tab' && <PrivateTravelServicesSection destination={trip?.destination} />}
       </div>
     </section>
     </>

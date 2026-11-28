@@ -43,8 +43,8 @@ interface PlannerStudioPageProps {
   onDismissPlanning?: () => void;
   onRetryPlanning?: () => void;
   onApiSettings?: () => void;
-  activeTab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab';
-  onSwitchTab: (tab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab') => void;
+  activeTab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab' | 'services-tab';
+  onSwitchTab: (tab: 'companion-tab' | 'route-tab' | 'flights-tab' | 'hotels-tab' | 'weather-tab' | 'budget-tab' | 'services-tab') => void;
   onSelectFlight: (id: string) => Promise<boolean>;
   onSelectHotel: (id: string) => Promise<boolean>;
   onUpdateExecutionState?: (updates: Partial<ExecutionState>) => Promise<boolean>;

@@ -7,6 +7,8 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  role?: 'admin' | 'user';
+  is_active?: boolean;
 }
 
 export interface AuthContextType {
@@ -490,4 +492,81 @@ export interface ItineraryDiffResult {
   totalRemoved: number;
   totalRescheduled: number;
   totalChanges: number;
+}
+
+// --- Admin & Dynamic Private Services Interfaces ---
+
+export interface AdminSystemHealth {
+  mongodb: { status: string; latency_ms: number; database: string };
+  groq_llm: { status: string; model: string };
+  serpapi: { status: string; plan?: string; searches_per_month?: number; total_searches_left?: number };
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_trips: number;
+  successful_trips: number;
+  failed_trips: number;
+  in_progress_trips: number;
+  total_conversations: number;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  is_active: boolean;
+  created_at: string;
+  trips_count: number;
+}
+
+export interface AdminActivityItem {
+  request_id: string;
+  trip_id?: string;
+  destination: string;
+  status: string;
+  user_name: string;
+  user_email: string;
+  message: string;
+  created_at: string;
+}
+
+export interface AdminAgentLog {
+  request_id: string;
+  trip_id?: string;
+  destination: string;
+  overall_status: string;
+  stages: Record<string, { status: string; note?: string | null }>;
+  updated_at: string;
+}
+
+export interface UserFeedbackItem {
+  id: string;
+  user_name: string;
+  user_email: string;
+  rating: number;
+  category: string;
+  comment: string;
+  trip_id?: string;
+  created_at: string;
+}
+
+export interface PrivateTravelService {
+  id: string;
+  name: string;
+  service_category: string;
+  location: string;
+  address: string;
+  rating?: number | null;
+  review_count?: number | null;
+  phone?: string | null;
+  website?: string | null;
+  maps_url?: string | null;
+  image_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  price?: string | number | null;
+  operating_hours?: string | null;
+  source: string;
 }
