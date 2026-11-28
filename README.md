@@ -1,6 +1,6 @@
 ﻿# TravelAI — Autonomous Intelligent Travel Planning & Companion Platform
 
-TravelAI is an autonomous, agentic travel planning and companion system powered by multi-agent architectures (LangGraph, FastAPI), intelligent retrieval (ChromaDB RAG), real-time live discovery (SerpApi), and a dynamic interactive React/Vite interface.
+TravelAI is an autonomous, agentic travel planning and companion system powered by multi-agent architectures (LangGraph, FastAPI), optional regional-guide retrieval (ChromaDB RAG), real-time live discovery (SerpApi), and a dynamic interactive React/Vite interface.
 
 ---
 
@@ -54,11 +54,13 @@ Travel-AI/
 
 ## 🚀 Quickstart Guide
 
+For public hosting, follow the [Vercel + Render + MongoDB Atlas deployment guide](docs/deployment.md). The root `render.yaml` and `Frontend/vercel.json` contain the demo deployment settings; credentials stay in hosting environment variables.
+
 ### 1. Prerequisites
 - **Python**: 3.10+
 - **Node.js**: 22.12+
 - **MongoDB**: Local community instance or MongoDB Atlas cluster
-- **Ollama for RAG**: Start Ollama and install the `nomic-embed-text` embedding model (`ollama pull nomic-embed-text`). Without it, retrieval cannot provide regional knowledge.
+- **Optional RAG**: Basic deployment works without Ollama or Chroma dependencies. Guide retrieval defaults to `RAG_ENABLED=false`. To enable it, install `Backend/requirements-rag.txt`, start Ollama with `nomic-embed-text`, configure persistent storage and ingest the guides. See [optional RAG deployment](docs/optional-rag.md).
 
 ---
 
@@ -89,7 +91,7 @@ The backend API documentation will be accessible at: `http://localhost:8000/docs
 
 The backend verifies MongoDB connectivity and creates indexes at startup. Backend dependencies are pinned to the versions used by the regression checks; `tzdata` supplies timezone support on Windows.
 
-To load the regional travel guides, run `python -m app.ai.rag.ingest` from `Backend/` after starting Ollama. Re-running ingestion uses stable document IDs. Guide content should be reviewed for freshness; it is reference material, not live availability.
+To load regional travel guides, install `requirements-rag.txt`, set `RAG_ENABLED=true`, start Ollama with `nomic-embed-text`, then run `python -m app.ai.rag.ingest` from `Backend/`. Re-running ingestion uses stable document IDs. Guide content should be reviewed for freshness; it is reference material, not live availability.
 
 ---
 

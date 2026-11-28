@@ -64,7 +64,7 @@ flowchart TB
 | Python services | Implement application rules and database operations | [services](../Backend/app/services) |
 | LangGraph | Run planning stages in the required order and fan out discovery work | [langgraph_graph.py](../Backend/app/ai/orchestrator/langgraph_graph.py) |
 | PyMongo + MongoDB | Persist user-owned application records | [mongodb.py](../Backend/app/database/mongodb.py) |
-| ChromaDB + Ollama | Retrieve relevant regional reference text for travel questions | [rag](../Backend/app/ai/rag), [qa_service.py](../Backend/app/services/qa_service.py) |
+| Optional ChromaDB + Ollama | Retrieve regional reference text when `RAG_ENABLED=true`; core deployment needs neither | [rag](../Backend/app/ai/rag), [qa_service.py](../Backend/app/services/qa_service.py) |
 
 This is a **layered client/server application**. Its agents are specialized steps in one backend, rather than independently deployed microservices. The database client is synchronous PyMongo, not Motor.
 
@@ -225,7 +225,7 @@ These are application-managed document relationships, not SQL foreign-key constr
 
 ### Common questions during a demonstration
 
-**Why two databases?** MongoDB stores application records. ChromaDB searches reference text by semantic similarity using Ollama embeddings.
+**Why two databases?** MongoDB stores application records. Optional ChromaDB searches reference text using Ollama embeddings when `RAG_ENABLED=true`. Core deployment defaults to retrieval disabled; see [optional RAG](optional-rag.md).
 
 **Why LangGraph?** It makes dependencies explicit: discovery branches run together, then budgeting, scheduling and validation follow in order.
 

@@ -12,6 +12,9 @@ QA_SYNTHESIS_PROMPT = ChatPromptTemplate.from_messages([
         "You are TravelAI's friendly, expert travel assistant. "
         "Answer the user's travel question clearly, accurately, and concisely using the provided context.\n\n"
         "Retrieved Data / Knowledge Context:\n{context}\n\n"
+        "Retrieved guides are reference material, not verified live prices, hours or availability. "
+        "If no supporting data is supplied, explicitly label your answer as general guidance; "
+        "do not imply that a search or verification succeeded. "
         "Keep your response natural, helpful, and conversational."
     ),
     ("human", "{user_message}")
@@ -34,7 +37,7 @@ def handle_travel_qa(
 
     if category == "WEATHER" and travel_context.get("destination"):
         weather_res = fetch_realtime_weather_openmeteo(travel_context["destination"], travel_context.get("days") or 3)
-        if weather_res:
+        if weather_res and weather_res.get('data_status') != 'unavailable':
             context_str = f"Live Weather Data: {weather_res.get('summary')} | Clothing Recommendation: {weather_res.get('clothing_recommendation')}"
         else:
             context_str = retrieve_travel_knowledge(f"{destination} weather temperature season climate monsoons", k=2)
@@ -56,7 +59,7 @@ def handle_travel_qa(
         context_str = retrieve_travel_knowledge(search_query, k=3)
 
     if not context_str:
-        context_str = f"General travel guide information for {destination}."
+        context_str = f"No verified live or retrieved information is available for {destination} for this question. Offer only clearly labelled general guidance, and recommend checking current details with the provider."
 
     prompt_val = QA_SYNTHESIS_PROMPT.format_messages(
         context=context_str,
@@ -67,5 +70,5 @@ def handle_travel_qa(
         response = llm.invoke(prompt_val)
         return response.content.strip()
     except Exception as e:
-        print(f"QA Synthesis error: {e}")
-        return f"Regarding {destination}: {context_str}"
+        print(f"QA synthesis unavailable ({type(e).__name__})")
+        return f"Travel advice is temporarily unavailable for {destination}. Please try again. Your saved trip has not been changed."

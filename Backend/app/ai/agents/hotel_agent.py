@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from app.ai.orchestrator.state import TravelState
 from app.services.discovery_status import search_guard, classify_response, remember_failure, status
 from app.services.travel_offer_identity import stable_offer_id
-from app.ai.rag.retriever import retrieve_travel_knowledge
 from app.ai.agents.attraction_agent import resolve_destination_coordinates
 
 

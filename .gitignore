@@ -6,8 +6,10 @@ ENV/
 
 # Environment Variables (Private Keys - NEVER commit these)
 .env
+*.env
 .env.*
 !.env.example
+.vercel/
 Backend/.env
 Frontend/.env
 
@@ -27,6 +29,7 @@ htmlcov/
 Thumbs.db
 .vscode/
 .idea/
+.kilo/
 ~$*
 *.tmp
 

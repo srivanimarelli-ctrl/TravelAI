@@ -1,0 +1,39 @@
+# Create this Blueprint from your own GitHub repository.
+# Enter secrets in Render, never in this file.
+services:
+  - type: web
+    name: travelai-api
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: Backend
+    buildCommand: python -m pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.11
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: RAG_ENABLED
+        value: "false"
+      - key: MONGODB_DB_NAME
+        value: travel_ai
+      - key: MONGODB_URI
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GROQ_OUTPUT_TOKENS_PER_MINUTE
+        value: "1000"
+      - key: ROUTING_DRIVING_URL
+        value: https://router.project-osrm.org
+      - key: ROUTING_DRIVING_PROFILE
+        value: driving
+      - key: ROUTING_WALKING_URL
+        value: ""
