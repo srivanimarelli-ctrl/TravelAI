@@ -46,8 +46,10 @@ Travel-AI/
 │   ├── package.json                # Frontend dependencies
 │   └── .env.example                # Frontend environment configuration template
 │
-└── docs/                           # Documentation and SRS specifications
-    └── academic/                   # Software Requirements Specification (SRS) & evidence
+└── docs/                           # System documentation and guides
+    ├── architecture-workflow.md    # Multi-agent architecture and workflows
+    ├── deployment.md               # Production deployment guide
+    └── dynamic-routing-v2.md       # On-trip dynamic rerouting engine
 ```
 
 ---
@@ -173,4 +175,4 @@ python phase2_1_reroute_tests.py
 
 The security/consistency suite uses isolated in-memory storage and mocks providers. Live graph, conversational, and flight audit scripts may call external services and require working provider credentials, MongoDB, and Ollama. Offline checks do not establish live provider availability.
 
-The public `/health/ready` endpoint checks database availability. API responses include a request ID for diagnosing failures, and internal server errors are not returned to the browser. See [project quality notes](docs/project-quality.md) for current capabilities and limitations.
+The public `/health/ready` endpoint checks database availability. API responses include a request ID for diagnosing failures, and internal server errors are not returned to the browser.
