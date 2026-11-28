@@ -19,6 +19,12 @@ export const PrivateServiceModal: React.FC<PrivateServiceModalProps> = ({
 
   if (!isOpen || !provider) return null;
 
+  const googleMapsUrl = (provider.maps_url && !provider.maps_url.includes('serpapi.com'))
+    ? provider.maps_url
+    : (provider.latitude != null && provider.longitude != null)
+    ? `https://www.google.com/maps/search/?api=1&query=${provider.latitude},${provider.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(provider.name + ' ' + (provider.address || provider.location))}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div
@@ -163,17 +169,15 @@ export const PrivateServiceModal: React.FC<PrivateServiceModalProps> = ({
             </a>
           )}
 
-          {provider.maps_url && (
-            <a
-              href={provider.maps_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>View on Map</span>
-            </a>
-          )}
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>View on Map</span>
+          </a>
 
           <button
             type="button"

@@ -82,6 +82,16 @@ export const PrivateTravelServicesSection: React.FC<PrivateTravelServicesSection
     return Compass;
   };
 
+  const getGoogleMapsLink = (p: PrivateTravelService): string => {
+    if (p.maps_url && !p.maps_url.includes('serpapi.com')) {
+      return p.maps_url;
+    }
+    if (p.latitude != null && p.longitude != null) {
+      return `https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + (p.address || p.location))}`;
+  };
+
   return (
     <section
       aria-label="Private Travel Services"
@@ -270,21 +280,15 @@ export const PrivateTravelServicesSection: React.FC<PrivateTravelServicesSection
                     )}
 
                     {/* View on Map */}
-                    {provider.maps_url ? (
-                      <a
-                        href={provider.maps_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface border border-surface-container-highest text-[11px] transition-colors"
-                        title="View on Google Maps"
-                      >
-                        <Navigation className="w-3.5 h-3.5 text-primary" />
-                      </a>
-                    ) : (
-                      <span className="p-1.5 rounded-lg bg-surface-container/20 text-on-surface-variant/30 border border-transparent">
-                        <Navigation className="w-3.5 h-3.5 opacity-30" />
-                      </span>
-                    )}
+                    <a
+                      href={getGoogleMapsLink(provider)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface border border-surface-container-highest text-[11px] transition-colors"
+                      title="View on Google Maps"
+                    >
+                      <Navigation className="w-3.5 h-3.5 text-primary" />
+                    </a>
                   </div>
                 </div>
               );

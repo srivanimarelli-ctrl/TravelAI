@@ -108,10 +108,12 @@ def discover_destination_private_services(destination: str, limit: int = 12, tim
                 place_type = item.get("type") or (item.get("types", [""])[0] if item.get("types") else "")
                 category = classify_service_category(place_type, title, category_hint)
 
-                # Direct Google Maps Link
-                maps_url = item.get("place_id_search") or item.get("link")
-                if not maps_url and lat and lon:
+                # Direct Google Maps Web Link
+                if lat is not None and lon is not None:
                     maps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+                else:
+                    search_q = urllib.parse.quote(f"{title} {address or dest_clean}".strip())
+                    maps_url = f"https://www.google.com/maps/search/?api=1&query={search_q}"
 
                 image_url = item.get("thumbnail") or item.get("serpapi_thumbnail")
 
