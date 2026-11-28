@@ -125,12 +125,41 @@ DESTINATION_KEYWORDS: Dict[str, str] = {
 def resolve_destination_from_query(query: str) -> Optional[str]:
     """Infers canonical destination from query keywords or known landmarks."""
     q_lower = query.lower()
+
+    # 1. Check explicit directional destination: 'to <destination>' or 'from <orig> to <dest>'
+    to_match = re.search(r'\b(?:to|into|visit|explore|trip\s+to|travel\s+to)\s+([a-z\s]+?)(?:,|\.|\bfor\b|\bfrom\b|\bwith\b|\bin\b|$)', q_lower)
+    if to_match:
+        target = to_match.group(1).strip()
+        for landmark, dest in LANDMARK_DESTINATIONS.items():
+            if re.search(r'\b' + re.escape(landmark) + r'\b', target):
+                return dest
+        for city, canonical in DESTINATION_KEYWORDS.items():
+            if re.search(r'\b' + re.escape(city) + r'\b', target):
+                return canonical
+
+    # 2. Check landmarks across the full query
     for landmark, dest in LANDMARK_DESTINATIONS.items():
         if re.search(r'\b' + re.escape(landmark) + r'\b', q_lower):
             return dest
+
+    # 3. Check if origin is specified via 'from <origin>'
+    from_match = re.search(r'\bfrom\s+([a-z\s]+?)(?:\s+to|\s+until|\s+for|,|\.|$)', q_lower)
+    from_text = from_match.group(1).strip() if from_match else ''
+
+    # 4. Find all matching destination keywords in the query
+    candidates = []
     for city, canonical in DESTINATION_KEYWORDS.items():
         if re.search(r'\b' + re.escape(city) + r'\b', q_lower):
-            return canonical
+            candidates.append((city, canonical))
+
+    if candidates:
+        if from_text:
+            # Filter out candidate cities that appear inside the 'from' origin clause
+            non_origin = [c for c in candidates if not re.search(r'\b' + re.escape(c[0]) + r'\b', from_text)]
+            if non_origin:
+                return non_origin[0][1]
+        return candidates[0][1]
+
     return None
 
 def retrieve_local_guide_knowledge(query: str, destination: Optional[str] = None, k: int = 3) -> str:

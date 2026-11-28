@@ -65,6 +65,8 @@ def classify_response(response):
 
 
 def account_status():
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
     key = os.getenv('SERPAPI_API_KEY', '').strip()
     if not key:
         return status('missing_credentials')

@@ -304,22 +304,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* API Status Box Footer */}
           <div className="mt-auto p-space-md bg-surface-container-lowest/90 border-t border-surface-container-high/40 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenApiModal}
-              className={`w-full flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors text-left ${
+            <div
+              className={`w-full flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-low text-left ${
                 isCollapsed ? 'justify-center p-2' : ''
               }`}
-              title="Configure FastAPI Backend Connection"
             >
               <div className="relative flex-shrink-0">
                 <div
                   className={`w-2.5 h-2.5 rounded-full ${
-                    apiStatus.isConnected ? 'bg-tertiary' : 'bg-primary'
-                  }`}
-                />
-                <div
-                  className={`w-2.5 h-2.5 rounded-full absolute inset-0 ${
                     apiStatus.isConnected ? 'bg-tertiary' : 'bg-primary'
                   }`}
                 />
@@ -339,7 +331,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                 </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </aside>

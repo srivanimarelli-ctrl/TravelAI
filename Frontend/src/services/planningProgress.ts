@@ -62,7 +62,14 @@ export async function trackPlanning(request: PendingPlanningRequest, onProgress:
   let current: PlanningProgress = { request_id: request.id, status: 'restoring', kind: 'request', stages: {} };
   let create = !resume && !request.retryAttemptId, failures = 0;
   const assertSession = () => {
-    if (signal.aborted || owner() !== request.owner) throw new DOMException('Session changed', 'AbortError');
+    if (signal.aborted) throw new DOMException('Request aborted', 'AbortError');
+    if (owner() !== request.owner) {
+      if (request.owner === 'anonymous' && owner() !== 'anonymous') {
+        request.owner = owner();
+      } else {
+        throw new DOMException('Session changed', 'AbortError');
+      }
+    }
     if (getApiBaseUrl() !== request.endpoint) throw new ProgressUnavailable({ ...current, status: 'connection_lost', error: 'API Settings changed. Restore the original connection to check this request.' });
   };
   for (;;) {
@@ -121,8 +128,15 @@ export async function trackPlanning(request: PendingPlanningRequest, onProgress:
       if (error instanceof ApiError && error.status === 404 && request.observedServer) {
         throw new ProgressUnavailable({ ...current, status: 'interrupted', recovery: { retryable: false }, error: 'This request record is no longer available. Review My trips before sending a revised request. Your original details are preserved.' });
       }
-      if (error instanceof ApiError && [400, 403, 409, 413, 422].includes(error.status)) {
-        throw new ProgressUnavailable({ ...current, status: 'connection_lost', error: error.message });
+      if (error instanceof ApiError && [400, 401, 403, 409, 413, 422].includes(error.status)) {
+        throw new ProgressUnavailable({
+          ...current,
+          status: 'interrupted',
+          recovery: { retryable: false },
+          error: error.status === 401
+            ? 'Your login session has expired. Please log in or sign up to generate and save your itinerary.'
+            : error.message,
+        });
       }
       create = false; // An uncertain POST is checked, never blindly submitted with a new key.
       if (++failures >= 3) throw new ProgressUnavailable({ ...current, status: 'connection_lost', error: 'Progress could not be checked. Your request may still be running; check its status before sending again.' });

@@ -11,7 +11,6 @@ import { AlertCircle, X } from 'lucide-react';
 import { useTravelApi } from './hooks/useTravelApi';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { ApiConfigModal } from './components/ApiConfigModal';
 import { FloatingChatButton } from './components/FloatingChatButton';
 import { ChatDrawer } from './components/ChatDrawer';
 import { RevisionHistoryDrawer } from './components/RevisionHistoryDrawer';
@@ -169,7 +168,7 @@ function AppContent() {
 
   return (
     <TravelDiscoveryContext.Provider value={acceptDiscoveryTrip}>
-    <TripBookingsContext.Provider value={{ ...bookings, openOrder: openBooking, openSettings: () => setIsApiModalOpen(true) }}>
+    <TripBookingsContext.Provider value={{ ...bookings, openOrder: openBooking, openSettings: () => {} }}>
     <div className="min-h-screen bg-background text-on-surface flex font-sans antialiased selection:bg-primary-container selection:text-on-primary relative">
       {/* User-visible Error Feedback Toast / Banner */}
       {errorMessage && (
@@ -184,7 +183,6 @@ function AppContent() {
             <span>{errorMessage}</span>
             <div className="flex flex-wrap gap-3 mt-2">
               {trip && <button type="button" className="underline" onClick={() => void setActiveTripId(trip.id, true).then(() => bookings.refresh())}>Refresh trip</button>}
-              <button type="button" className="underline" onClick={() => setIsApiModalOpen(true)}>API Settings</button>
             </div>
           </div>
           <button
@@ -210,7 +208,6 @@ function AppContent() {
         savedTrips={savedTrips}
         isLoadingTrips={isLoadingTrips}
         apiStatus={apiStatus}
-        onOpenApiModal={() => setIsApiModalOpen(true)}
         onDeleteConversation={handleDeleteConversation}
         onDeleteTrip={handleDeleteTrip}
         onSelectConversation={async id => { await handleSelectConversation(id); }}
@@ -240,7 +237,6 @@ function AppContent() {
           apiStatus={apiStatus}
           activeTrip={trip}
           savedTrips={savedTrips}
-          onOpenApiModal={() => setIsApiModalOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
           isSidebarCollapsed={isSidebarCollapsed}
           onSelectTripPreset={async (presetId) => {
@@ -300,7 +296,6 @@ function AppContent() {
                 onCheckPlanning={handleCheckPlanning}
                 onDismissPlanning={handleDismissPlanning}
                 onRetryPlanning={handleRetryPlanning}
-                onApiSettings={() => setIsApiModalOpen(true)}
                 activeTab={activeDashboardTab}
                 onSwitchTab={(tab) => {
                   if (tab === 'companion-tab' && !trip?.plusAccess) upgrade();
@@ -379,15 +374,6 @@ function AppContent() {
         </main>
       </div>
 
-      {/* FastAPI Backend Configuration Modal */}
-      <ApiConfigModal
-        isOpen={isApiModalOpen}
-        onClose={() => setIsApiModalOpen(false)}
-        apiStatus={apiStatus}
-        onUpdateApiUrl={updateApiUrl}
-        isChecking={isCheckingApi}
-      />
-
       {/* Floating AI Chatbot Shortcut Button */}
       {trip && (
         <RevisionHistoryDrawer
@@ -423,7 +409,6 @@ function AppContent() {
         onCheckPlanning={handleCheckPlanning}
         onDismissPlanning={handleDismissPlanning}
         onRetryPlanning={handleRetryPlanning}
-        onApiSettings={() => setIsApiModalOpen(true)}
         onSwitchTab={(tabId) => {
           setActiveDashboardTab(tabId);
           setActivePage('planner-studio');

@@ -84,11 +84,13 @@ def refresh(db, trip_id, owner, kind, revision):
         from app.ai.agents.hotel_agent import hotel_node
         meta_key = 'flight_metadata' if kind == 'flight' else 'hotel_metadata'
         blocked = search_guard()
-        found = {meta_key: dict(blocked, data_status='error')} if blocked else (
-            flight_node if kind == 'flight' else hotel_node)(dict(trip, _refresh_discovery=True))
+        if kind == 'flight':
+            found = {meta_key: dict(blocked, data_status='error')} if blocked else flight_node(dict(trip, _refresh_discovery=True))
+        else:
+            found = hotel_node(dict(trip, _refresh_discovery=True))
         metadata = safe_metadata(found.get(meta_key))
         update = {meta_key: metadata, 'revision': revision + 1}
-        if metadata.get('data_status') == 'search_results':
+        if metadata.get('data_status') in ('search_results', 'curated_selection'):
             update.update(merge_options(db, trip, kind, found))
         written = db.trips.update_one(revision_filter(query, trip), {'$set': update})
         if written.matched_count != 1:

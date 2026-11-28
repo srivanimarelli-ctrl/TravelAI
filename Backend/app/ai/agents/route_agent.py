@@ -667,7 +667,12 @@ def route_node(state: TravelState) -> dict:
             seen_activity_slugs[base_key] = count
 
             # Operating hours status normalization
-            op_stat = "OPEN" if opening_hours_status == "VERIFIED_OPEN" else ("CLOSED" if opening_hours_status == "VERIFIED_CLOSED" else "UNKNOWN")
+            if stop_type in {'breakfast', 'hotel', 'airport', 'flight', 'transit'}:
+                opening_hours_status = "VERIFIED_OPEN"
+                op_stat = "OPEN"
+                status_reason = status_reason or "Guest accommodation / Scheduled transit"
+            else:
+                op_stat = "OPEN" if opening_hours_status == "VERIFIED_OPEN" else ("CLOSED" if opening_hours_status == "VERIFIED_CLOSED" else "UNKNOWN")
 
             if stop_type in {'attraction', 'restaurant'}:
                 from app.ai.agents.opening_hours_agent import determine_status_from_hours
@@ -1096,7 +1101,9 @@ def route_node(state: TravelState) -> dict:
             description=f"Morning breakfast and itinerary preparation at {hotel_name} before departure.",
             why_visit="Essential morning dining, energy, and daily exploration review.",
             image_url="https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80",
-            rating=4.5
+            rating=4.5,
+            opening_hours_status="VERIFIED_OPEN",
+            status_reason="Guest accommodation dining"
         )
         current_cursor = breakfast_end
         prev_lat, prev_lon = hotel_lat, hotel_lon

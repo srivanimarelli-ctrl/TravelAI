@@ -40,15 +40,27 @@ function StatusBadge({ status }: { status?: string }) {
       </span>
     );
   }
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
-      <HelpCircle className="w-3 h-3" /> Unverified
-    </span>
-  );
+  return null;
 }
 
 function OperatingHoursPanel({ act }: { act: ActivitySegment }) {
   const [expanded, setExpanded] = useState(false);
+
+  const isAccomOrTransit = Boolean(
+    act.type === 'breakfast' ||
+    act.category === 'breakfast' ||
+    act.type === 'hotel' ||
+    act.category === 'hotel' ||
+    act.type === 'airport' ||
+    act.category === 'airport' ||
+    act.type === 'flight' ||
+    act.type === 'transit' ||
+    act.title?.toLowerCase().includes('breakfast') ||
+    act.title?.toLowerCase().includes('accommodation') ||
+    act.title?.toLowerCase().includes('check-in')
+  );
+
+  if (isAccomOrTransit) return null;
 
   const hasHours = act.operatingHours && act.operatingHours.length > 0;
   const hasScheduledDate = act.scheduledDate || act.dayOfWeek;
@@ -85,13 +97,7 @@ function OperatingHoursPanel({ act }: { act: ActivitySegment }) {
         )}
       </div>
 
-      {/* Warning for UNKNOWN */}
-      {act.operatingStatus?.toUpperCase() === 'UNKNOWN' && (
-        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
-          <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-px" />
-          Live hours unavailable — verify locally before visiting.
-        </p>
-      )}
+
 
       {/* Expandable hours list */}
       {expanded && hasHours && (

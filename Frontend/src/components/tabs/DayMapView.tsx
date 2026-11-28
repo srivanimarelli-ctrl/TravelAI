@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Layers, Map as MapIcon, Globe, Navigation } from 'lucide-react';
 import { ActivitySegment, RouteLeg } from '../../types';
+import { resolvePlaceImage } from './DayDetailView';
 import { useReducedMotion } from 'motion/react';
 import { claimRouteReveal, revealPath } from '../../motion/routeMotion';
 import { motionTokens } from '../../motion/tokens';
@@ -175,7 +176,7 @@ export const DayMapView: React.FC<DayMapViewProps> = ({
         timeOfDay: act.timeOfDay,
         lat: lat!,
         lon: lon!,
-        thumbnail: act.thumbnail,
+        thumbnail: resolvePlaceImage(act, destination),
         status: act.operatingStatus,
         location: act.location,
       });

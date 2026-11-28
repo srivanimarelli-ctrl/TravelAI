@@ -3,8 +3,6 @@ import {
   Menu,
   PlaneTakeoff,
   ChevronDown,
-  Search,
-  Settings,
   User,
   Check,
   LogOut,
@@ -21,7 +19,7 @@ interface HeaderProps {
   apiStatus: ApiStatusState;
   activeTrip: TripSummary | null;
   savedTrips: SavedTripSnippet[];
-  onOpenApiModal: () => void;
+  onOpenApiModal?: () => void;
   onToggleMobileSidebar: () => void;
   isSidebarCollapsed: boolean;
   onSelectTripPreset?: (presetId: string) => void | Promise<void>;
@@ -43,18 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const [isTripDropdownOpen, setIsTripDropdownOpen] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const tripMenu = usePopoverFocus(isTripDropdownOpen, () => setIsTripDropdownOpen(false));
   const profileMenu = usePopoverFocus(showUserDropdown, () => setShowUserDropdown(false));
   const tripPresets = savedTrips.map(trip => ({ id: trip.id, name: trip.name, location: trip.destinationTag }));
-
-  const handleKeyDownSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      if (onSearch) {
-        onSearch(searchQuery.trim());
-      }
-    }
-  };
 
   return (
     <header
@@ -75,11 +64,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* FastAPI Connected Pill */}
-          <button
-            type="button"
-            onClick={onOpenApiModal}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high cursor-pointer transition-colors border border-surface-container-high/60 focus:outline-none"
-            title="Connection settings"
+          <div
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-surface-container-high/60"
+            title="Service status"
           >
             <span className="relative flex h-2 w-2">
               <span
@@ -91,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs text-on-surface font-medium">
               {apiStatus.isConnected ? 'Connected' : 'Offline'}
             </span>
-          </button>
+          </div>
 
           {/* Active Trip Selector Dropdown */}
           <div className="relative" hidden={!showTripSelector}>
@@ -149,24 +136,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Search, Notifications, Settings, Profile */}
+        {/* Right Side: Theme & Profile */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          {/* Global Search */}
-          <div className="hidden min-[1280px]:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-lowest text-on-surface-variant border border-surface-container-high/40 w-52 min-[1600px]:w-72">
-            <Search className="w-4 h-4 text-on-surface-variant flex-shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDownSearch}
-              placeholder="Search flights, stays, or prompt..."
-              className="bg-transparent text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none w-full"
-            />
-            <kbd className="px-1.5 py-0.5 rounded bg-surface-container-high text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
-              ↵ Enter
-            </kbd>
-          </div>
-
           {/* Action buttons */}
           <div className="flex items-center gap-1">
             <button
@@ -177,16 +148,6 @@ export const Header: React.FC<HeaderProps> = ({
               title="Toggle Light/Dark Mode"
             >
               {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
-
-            <button
-              type="button"
-              aria-label="API Settings"
-              onClick={onOpenApiModal}
-              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
-              title="Connection settings"
-            >
-              <Settings className="w-4 h-4" />
             </button>
           </div>
 

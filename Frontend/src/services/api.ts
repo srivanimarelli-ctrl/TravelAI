@@ -28,10 +28,11 @@ export { getApiBaseUrl } from './apiConfig';
 
 export function setApiBaseUrl(url: string): void {
   if (typeof window !== 'undefined') {
-    if (!url || url.trim() === '') {
+    const trimmed = (url || '').trim();
+    if (!trimmed || !/^https?:\/\/[^\s]+$/i.test(trimmed)) {
       localStorage.removeItem('TRAVELAI_FASTAPI_URL');
     } else {
-      localStorage.setItem('TRAVELAI_FASTAPI_URL', url.trim());
+      localStorage.setItem('TRAVELAI_FASTAPI_URL', trimmed.replace(/\/+$/, ''));
     }
   }
 }

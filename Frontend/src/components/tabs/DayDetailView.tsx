@@ -94,12 +94,62 @@ export const CategoryPlaceholder: React.FC<{
   );
 };
 
+export function getAuthenticLandmarkImage(title: string = '', desc: string = ''): string | null {
+  const combined = `${title} ${desc}`.toLowerCase();
+
+  // Hyderabad Landmarks
+  if (combined.includes('golconda') || combined.includes('golkonda')) return '/places/golconda-fort.jpg';
+  if (combined.includes('salar jung') || combined.includes('salarjung')) return '/places/salar-jung-museum.jpg';
+  if (combined.includes('charminar')) return '/places/charminar.jpg';
+  if (combined.includes('qutb shahi') || combined.includes('qutub shahi') || (combined.includes('tomb') && combined.includes('hyderabad'))) return '/places/qutb-shahi-tombs.jpg';
+  if (combined.includes('chowmahalla')) return '/places/chowmahalla-palace.jpg';
+  if (combined.includes('birla mandir')) return '/places/birla-mandir.jpg';
+  if (combined.includes('hussain sagar') || combined.includes('buddha statue') || combined.includes('tank bund')) return '/places/hussain-sagar.jpg';
+  if (combined.includes('ramoji')) return '/places/ramoji-film-city.jpg';
+  if (combined.includes('zoological') || combined.includes('nehru zoo')) return '/places/nehru-zoo.jpg';
+
+  // Jaipur & Rajasthan Landmarks
+  if (combined.includes('amber fort') || combined.includes('amer fort')) return '/places/amber-fort.jpg';
+  if (combined.includes('hawa mahal')) return '/places/hawa-mahal.jpg';
+  if (combined.includes('city palace') && (combined.includes('jaipur') || combined.includes('pink city') || combined.includes('chandra'))) return '/places/city-palace-jaipur.jpg';
+  if (combined.includes('jantar mantar')) return '/places/jantar-mantar.jpg';
+  if (combined.includes('nahargarh')) return '/places/nahargarh-fort.jpg';
+
+  // Agra Landmarks
+  if (combined.includes('taj mahal')) return '/places/taj-mahal.jpg';
+  if (combined.includes('agra fort')) return '/places/agra-fort.jpg';
+
+  // Goa Landmarks & Beaches
+  if (combined.includes('aguada')) return '/places/fort-aguada.jpg';
+  if (combined.includes('calangute')) return '/places/calangute-beach.jpg';
+  if (combined.includes('baga')) return '/places/baga-beach.jpg';
+  if (combined.includes('anjuna')) return '/places/anjuna-beach.jpg';
+  if (combined.includes('palolem')) return '/places/palolem-beach.jpg';
+  if (combined.includes('bom jesus')) return '/places/basilica-bom-jesus.jpg';
+  if (combined.includes('dudhsagar')) return '/places/dudhsagar-falls.jpg';
+
+  // Mumbai & Delhi Landmarks
+  if (combined.includes('gateway of india')) return '/places/gateway-of-india.jpg';
+  if (combined.includes('india gate')) return '/places/india-gate.jpg';
+  if (combined.includes('red fort')) return '/places/red-fort.jpg';
+  if (combined.includes('qutb minar') || combined.includes('qutub minar')) return '/places/qutb-minar.jpg';
+  if (combined.includes('humayun')) return '/places/humayuns-tomb.jpg';
+
+  return null;
+}
+
 export function getCategoryFallbackImage(act: ActivitySegment, destination?: string): string {
   const title = (act.title || '').toLowerCase();
   const desc = (act.description || '').toLowerCase();
   const cat = (act.category || '').toLowerCase();
   const dest = (destination || '').toLowerCase();
   const combined = `${title} ${desc} ${cat} ${dest}`;
+
+  // 0. Verified Authentic Landmark Images
+  const authentic = getAuthenticLandmarkImage(title, desc);
+  if (authentic) {
+    return authentic;
+  }
 
   // 1. Airport Transit
   if (combined.includes('airport') || combined.includes('terminal') || combined.includes('flight') || (act.type === 'airport')) {
@@ -129,9 +179,15 @@ export function getCategoryFallbackImage(act: ActivitySegment, destination?: str
     return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80';
   }
 
-  // 3. Dining & Gastronomy
-  if (combined.includes('restaurant') || combined.includes('dining') || combined.includes('cuisine') || combined.includes('cafe') || combined.includes('bistro') || combined.includes('biryani') || (act.type === 'restaurant') || act.timeOfDay === 'Afternoon') {
-    if (combined.includes('hyderabad') || combined.includes('biryani') || combined.includes('mughlai') || combined.includes('nizam') || combined.includes('bahar') || combined.includes('bidri')) {
+  // 3. Dining & Gastronomy (STRICT: ONLY for genuine restaurant, breakfast, or dining activities)
+  const isGenuineDining = act.type === 'restaurant' || act.type === 'breakfast' || Boolean(act.isMealBreak) ||
+    title.includes('restaurant') || title.includes('cafe') || title.includes('bistro') ||
+    title.includes('bakery') || title.includes('dhaba') || title.includes('dining') ||
+    title.includes('bawarchi') || title.includes('paradise') || title.includes('shadab') ||
+    cat === 'restaurant' || cat === 'food' || cat === 'cafe';
+
+  if (isGenuineDining) {
+    if (combined.includes('hyderabad') || combined.includes('biryani') || combined.includes('bawarchi') || combined.includes('paradise') || combined.includes('shadab')) {
       return 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80';
     }
     if (combined.includes('goa') || combined.includes('seafood') || combined.includes('fish')) {
@@ -143,21 +199,21 @@ export function getCategoryFallbackImage(act: ActivitySegment, destination?: str
     return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80';
   }
 
-  // 4. Attractions by category
+  // 4. Attractions by category (Never fall through to dining!)
   if (combined.includes('temple') || combined.includes('mandir') || combined.includes('spiritual') || combined.includes('swamy') || combined.includes('krishna') || combined.includes('shiva') || combined.includes('jagan')) {
     return 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80';
   }
   if (combined.includes('fort') || combined.includes('palace') || combined.includes('monument') || combined.includes('heritage') || combined.includes('history')) {
-    return 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80';
+    return '/places/golconda-fort.jpg';
   }
   if (combined.includes('beach') || combined.includes('sea') || combined.includes('coast') || combined.includes('ocean')) {
-    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+    return '/places/calangute-beach.jpg';
   }
   if (combined.includes('museum') || combined.includes('gallery') || combined.includes('art')) {
-    return 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80';
+    return '/places/salar-jung-museum.jpg';
   }
   if (combined.includes('park') || combined.includes('garden') || combined.includes('lake') || combined.includes('nature') || combined.includes('waterfall')) {
-    return 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=800&q=80';
+    return '/places/hussain-sagar.jpg';
   }
   if (combined.includes('market') || combined.includes('bazaar') || combined.includes('shopping')) {
     return 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=800&q=80';
@@ -167,19 +223,33 @@ export function getCategoryFallbackImage(act: ActivitySegment, destination?: str
 }
 
 export function resolvePlaceImage(act: ActivitySegment, destination?: string): string {
-  // 1. Direct verified thumbnail or image_url fields on activity
+  const title = act.title || '';
+  const desc = act.description || '';
+
+  // 1. HIGHEST PRIORITY: Authentic Verified Landmark Photo (Prevents false hotel bedrooms / Louvre / biryani)
+  const authentic = getAuthenticLandmarkImage(title, desc);
+  if (authentic) {
+    return authentic;
+  }
+
+  // 2. Direct verified thumbnail or image_url fields on activity (filter out mismatched mock images)
   const direct = act.thumbnail || (act as any).image_url || (act as any).imageUrl || (act as any).image;
-  if (direct && typeof direct === 'string' && (direct.startsWith('http://') || direct.startsWith('https://'))) {
-    if (!direct.includes('picsum.photos')) {
+  if (direct && typeof direct === 'string' && (direct.startsWith('http://') || direct.startsWith('https://') || direct.startsWith('/'))) {
+    if (
+      !direct.includes('picsum.photos') &&
+      !direct.includes('photo-1590490360182-c33d57733427') && // hotel bedroom suite
+      !direct.includes('photo-1566127444979-b3d2b654e3d7') && // Louvre pyramid in Paris
+      !direct.includes('photo-1589302168068-964664d93dc0')    // Biryani
+    ) {
       return direct;
     }
   }
 
-  // 2. Intelligent verified destination & venue photo fallback
+  // 3. Intelligent verified destination & venue photo fallback
   return getCategoryFallbackImage(act, destination);
 }
 
-function StatusBadge({ status }: { status?: string }) {
+function StatusBadge({ status }: { status?: string; isAccomOrTransit?: boolean }) {
   if (!status) return null;
   const upper = status.toUpperCase();
   if (upper === 'OPEN') {
@@ -196,11 +266,7 @@ function StatusBadge({ status }: { status?: string }) {
       </span>
     );
   }
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-      <HelpCircle className="w-3.5 h-3.5" /> Hours Unverified
-    </span>
-  );
+  return null;
 }
 
 const ActivityCard: React.FC<{ act: ActivitySegment; dayNumber: number; index: number; destination?: string }> = ({ act, dayNumber, index, destination }) => {
@@ -221,19 +287,107 @@ const ActivityCard: React.FC<{ act: ActivitySegment; dayNumber: number; index: n
   const categoryMeta = getActivityCategoryMeta(act);
   const hasHours = act.operatingHours && act.operatingHours.length > 0;
 
-  const typeIcon = isMorning ? (
-    <Compass className="w-4 h-4 text-sky-400" />
-  ) : isAfternoon ? (
-    <Utensils className="w-4 h-4 text-purple-400" />
-  ) : (
-    <Hotel className="w-4 h-4 text-emerald-400" />
+  const isAccomOrTransit = Boolean(
+    act.type === 'breakfast' ||
+    act.category === 'breakfast' ||
+    act.type === 'hotel' ||
+    act.category === 'hotel' ||
+    act.type === 'airport' ||
+    act.category === 'airport' ||
+    act.type === 'flight' ||
+    act.type === 'transit' ||
+    act.title?.toLowerCase().includes('breakfast') ||
+    act.title?.toLowerCase().includes('accommodation') ||
+    act.title?.toLowerCase().includes('check-in')
   );
 
-  const badgeTheme = isMorning
-    ? 'bg-sky-500/10 text-sky-400 border-sky-500/30'
-    : isAfternoon
-    ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
-    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+  const isGenuineDining = Boolean(
+    act.type === 'restaurant' ||
+    act.category === 'restaurant' ||
+    act.category === 'food' ||
+    act.isMealBreak ||
+    act.title?.toLowerCase().includes('restaurant') ||
+    act.title?.toLowerCase().includes('cafe') ||
+    act.title?.toLowerCase().includes('dining') ||
+    act.title?.toLowerCase().includes('bawarchi') ||
+    act.title?.toLowerCase().includes('paradise') ||
+    act.title?.toLowerCase().includes('shadab') ||
+    act.title?.toLowerCase().includes('lunch') ||
+    act.title?.toLowerCase().includes('dinner')
+  );
+
+  const stopTypeLabel = (() => {
+    const typeLower = (act.type || '').toLowerCase();
+    const catLower = (act.category || '').toLowerCase();
+    const titleLower = (act.title || '').toLowerCase();
+
+    if (typeLower === 'breakfast' || catLower === 'breakfast' || titleLower.includes('breakfast')) {
+      return 'Morning Breakfast & Prep';
+    }
+    if (typeLower === 'hotel' || catLower === 'hotel' || titleLower.includes('hotel') || titleLower.includes('accommodation') || titleLower.includes('check-in')) {
+      return 'Hotel / Accommodation';
+    }
+    if (typeLower === 'airport' || catLower === 'airport' || titleLower.includes('airport') || typeLower === 'flight' || titleLower.includes('flight') || typeLower === 'transit') {
+      return 'Flight & Transit';
+    }
+    if (isGenuineDining) {
+      return 'Curated Dining';
+    }
+    if (
+      titleLower.includes('tomb') || titleLower.includes('fort') ||
+      titleLower.includes('palace') || titleLower.includes('charminar') ||
+      titleLower.includes('temple') || titleLower.includes('church') ||
+      titleLower.includes('monument') || titleLower.includes('museum')
+    ) {
+      return 'Historic Landmark';
+    }
+    if (titleLower.includes('beach') || titleLower.includes('cove') || titleLower.includes('coast')) {
+      return 'Scenic Beach & Coast';
+    }
+    if (act.priorityRank === 0 || act.priorityRank === 1 || (act as any).is_must_visit || (act as any).isMustVisit) {
+      return 'Must-Visit Attraction';
+    }
+    if (act.matchedInterest && act.matchedInterest.toLowerCase() !== 'highlights') {
+      return `${act.matchedInterest} Experience`;
+    }
+    return 'Sightseeing & Highlights';
+  })();
+
+  const badgeTheme = (() => {
+    const typeLower = (act.type || '').toLowerCase();
+    const titleLower = (act.title || '').toLowerCase();
+    if (typeLower === 'breakfast' || titleLower.includes('breakfast')) {
+      return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
+    }
+    if (isGenuineDining) {
+      return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+    }
+    if (typeLower === 'hotel' || titleLower.includes('hotel') || titleLower.includes('accommodation')) {
+      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+    }
+    if (typeLower === 'airport' || typeLower === 'flight' || titleLower.includes('airport') || titleLower.includes('flight')) {
+      return 'bg-sky-500/10 text-sky-400 border-sky-500/30';
+    }
+    return 'bg-sky-500/10 text-sky-400 border-sky-500/30';
+  })();
+
+  const typeIcon = (() => {
+    const typeLower = (act.type || '').toLowerCase();
+    const titleLower = (act.title || '').toLowerCase();
+    if (typeLower === 'breakfast' || titleLower.includes('breakfast')) {
+      return <Utensils className="w-4 h-4 text-amber-400" />;
+    }
+    if (isGenuineDining) {
+      return <Utensils className="w-4 h-4 text-purple-400" />;
+    }
+    if (typeLower === 'hotel' || titleLower.includes('hotel') || titleLower.includes('accommodation')) {
+      return <Hotel className="w-4 h-4 text-emerald-400" />;
+    }
+    if (typeLower === 'airport' || typeLower === 'flight' || titleLower.includes('airport')) {
+      return <Compass className="w-4 h-4 text-sky-400" />;
+    }
+    return <Compass className="w-4 h-4 text-sky-400" />;
+  })();
 
   return (
     <div className="group rounded-2xl bg-surface-container overflow-hidden border border-surface-container-highest/60 hover:border-primary/50 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col md:flex-row">
@@ -269,9 +423,9 @@ const ActivityCard: React.FC<{ act: ActivitySegment; dayNumber: number; index: n
         </div>
 
         {/* Status Badge Overlay on Image (Mobile) */}
-        {act.operatingStatus && (
+        {act.operatingStatus && !isAccomOrTransit && (
           <div className="absolute bottom-3 left-3 md:hidden z-10">
-            <StatusBadge status={act.operatingStatus} />
+            <StatusBadge status={act.operatingStatus} isAccomOrTransit={isAccomOrTransit} />
           </div>
         )}
       </div>
@@ -282,13 +436,15 @@ const ActivityCard: React.FC<{ act: ActivitySegment; dayNumber: number; index: n
           {/* Header Row */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${badgeTheme}`}>
-              Stop {index + 1} • {isMorning ? 'Must-Visit Attraction' : isAfternoon ? 'Curated Dining' : 'Evening Experience'}
+              Stop {index + 1} • {stopTypeLabel}
             </span>
 
             {/* Status Badge (Desktop) */}
-            <div className="hidden md:block">
-              <StatusBadge status={act.operatingStatus} />
-            </div>
+            {!isAccomOrTransit && (
+              <div className="hidden md:block">
+                <StatusBadge status={act.operatingStatus} isAccomOrTransit={isAccomOrTransit} />
+              </div>
+            )}
           </div>
 
           {/* Place Title */}
@@ -366,13 +522,7 @@ const ActivityCard: React.FC<{ act: ActivitySegment; dayNumber: number; index: n
             )}
           </div>
 
-          {/* Warning for unverified */}
-          {act.operatingStatus === 'UNKNOWN' && (
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>Live opening hours unavailable for this spot — please verify locally before visiting.</span>
-            </div>
-          )}
+
 
           {/* Expanded Operating Hours Dropdown */}
           {showHours && hasHours && (

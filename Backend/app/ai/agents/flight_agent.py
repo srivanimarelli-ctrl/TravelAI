@@ -369,6 +369,7 @@ def fetch_real_flights_serpapi(
     - Preserves all real provider fields (booking token, layovers, duration, deep link).
     - Returns structured metadata and genuine results, never inventing mock flights.
     """
+    load_dotenv(override=True)
     api_key = os.getenv("SERPAPI_API_KEY")
     arrival_code = get_airport_code(destination, is_origin=False)
     departure_code = get_airport_code(origin, is_origin=True)

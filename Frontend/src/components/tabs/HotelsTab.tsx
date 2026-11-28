@@ -62,9 +62,7 @@ export const HotelsTab: React.FC<HotelsTabProps> = ({
               />
               <span className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-surface-container-lowest/85 backdrop-blur-md text-tertiary text-[11px] font-semibold flex items-center gap-1 border border-surface-container-highest/60">
                 <Star className="w-3.5 h-3.5 fill-tertiary text-tertiary" />
-                <span>
-                  {hotel.rating} ({hotel.reviewCount} Reviews)
-                </span>
+                <span>{hotel.rating}</span>
               </span>
             </div>
 
@@ -217,7 +215,7 @@ export const HotelsTab: React.FC<HotelsTabProps> = ({
                       {hotel.rating}
                     </span>
                     <span className="text-[9px] text-on-surface-variant font-medium">
-                      ₹{hotel.pricePerNight.toLocaleString()}/nt
+                      {hotel.pricePerNight > 0 ? `₹${hotel.pricePerNight.toLocaleString()}/nt` : 'Check rates'}
                     </span>
                   </div>
                 </div>

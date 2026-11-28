@@ -137,6 +137,20 @@ def extract_context_tags(text: str) -> Dict[str, Any]:
                         result['preferences'] = parsed_list
                         result['interests'] = parsed_list
 
+    # 1.5. Parse directional "from <origin> to <destination>" pattern in user text
+    from_to_match = re.search(r'\bfrom\s+([a-zA-Z\s]+?)\s+to\s+([a-zA-Z\s]+?)(?:\s+for|\s+in|\s+with|\s+starting|\s+on|\.|\,|$)', text, re.IGNORECASE)
+    if from_to_match:
+        orig_cand = from_to_match.group(1).strip()
+        dest_cand = from_to_match.group(2).strip()
+        dest_cand = re.sub(r'\b(india|trip|vacation|tour|holiday)\b', '', dest_cand, flags=re.IGNORECASE).strip(' ,.')
+        orig_cand = re.sub(r'\b(india)\b', '', orig_cand, flags=re.IGNORECASE).strip(' ,.')
+        if orig_cand and "origin" not in result:
+            canon_orig = resolve_destination_from_query(orig_cand) or orig_cand.title()
+            result["origin"] = canon_orig
+        if dest_cand and "destination" not in result:
+            canon_dest = resolve_destination_from_query(dest_cand) or dest_cand.title()
+            result["destination"] = canon_dest
+
     # 2. Parse date ranges in text (e.g. "sept-26 to sept -30 2026", "2026-09-26 to 2026-09-30", "12 Jan to 21 Jan")
     lower = text.lower()
     date_range_match = re.search(r'(?:when|dates?|from)?\s*([a-z]{3,9}[\s\-]*\d{1,2}(?:[\s,]*\d{4})?|\d{4}-\d{2}-\d{2})\s*(?:to|–|-)\s*([a-z]{3,9}[\s\-]*\d{1,2}(?:[\s,]*\d{4})?|\d{4}-\d{2}-\d{2})', lower)
@@ -158,11 +172,20 @@ def extract_context_tags(text: str) -> Dict[str, Any]:
         val = days_text_match.group(1)
         result["days"] = int(val) if val.isdigit() else word_to_num.get(val, 5)
 
-    # 4. Infer destination if not in tags
+    # 4. Infer destination and origin if not in tags
     if "destination" not in result:
         dest_val = resolve_destination_from_query(text)
         if dest_val:
             result["destination"] = dest_val
+
+    if "origin" not in result:
+        from_match = re.search(r'\bfrom\s+([a-zA-Z\s]+?)(?:\s+to|\s+until|\s+for|,|\.|$)', lower)
+        if from_match:
+            orig_str = from_match.group(1).strip()
+            orig_str = re.sub(r'\b(india)\b', '', orig_str, flags=re.IGNORECASE).strip(' ,.')
+            canon_orig = resolve_destination_from_query(orig_str) or orig_str.title()
+            if canon_orig and canon_orig != result.get("destination"):
+                result["origin"] = canon_orig
 
     # 5. Parse explicit travelers
     pax_m = re.search(r'(\d+)\s*(?:adults?|travelers?|travellers?|members?|people|pax)', lower)
@@ -451,7 +474,9 @@ def analyze_user_message(
     python_currency = normalize_currency_and_numbers(user_message)
     if python_currency:
         for k, v in python_currency.items():
-            if k in {'start_date', 'end_date', 'days', 'origin', 'destination', 'travelers'} or k not in analysis["slots"] or analysis["slots"][k] is None:
+            if k not in analysis["slots"] or analysis["slots"][k] is None:
+                analysis["slots"][k] = v
+            elif k in {'budget', 'currency', 'budget_mode'} and python_currency.get(k):
                 analysis["slots"][k] = v
 
     # Intent refinement and overrides

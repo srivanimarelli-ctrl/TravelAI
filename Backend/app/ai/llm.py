@@ -252,8 +252,10 @@ class RateAwareLLM:
             while retries_attempted <= max_retries:
                 start_time = time.time()
                 try:
+                    load_dotenv(override=True)
                     client = ChatGroq(
                         model=self.model_name,
+                        api_key=os.getenv("GROQ_API_KEY"),
                         temperature=0.0,
                         max_tokens=clamped_tokens,
                         max_retries=0,

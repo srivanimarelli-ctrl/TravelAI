@@ -143,6 +143,20 @@ export function useTravelApi() {
   } : null);
   useEffect(() => () => sendController.current?.abort(), []);
 
+  // When session expires or logs out, clear pending planning to prevent 10% progress loops
+  useEffect(() => {
+    const handleExpired = () => {
+      if (pendingPlanning.current) {
+        clearPendingPlanning(pendingPlanning.current.id);
+        pendingPlanning.current = null;
+      }
+      setPlanningProgress(null);
+      setIsSendingMessage(false);
+    };
+    window.addEventListener('travelai-session-expired', handleExpired);
+    return () => window.removeEventListener('travelai-session-expired', handleExpired);
+  }, []);
+
   // Conversational Context & Intent states: restore from cached state if available
   const [travelContext, setTravelContext] = useState<Record<string, any> | null>(() => {
     if (typeof window !== 'undefined') {
@@ -513,7 +527,7 @@ export function useTravelApi() {
       const promptToSend = buildChatPromptWithFallbackContext(text, checkResult.mergedContext);
 
       // POST /api/chat/message with EXACTLY { message, conversation_id }
-      const tracked = recovery || (apiStatus.supportsPlanningProgress ? newPlanningRequest(text, promptToSend, checkResult.mergedContext, currentConversationId) : null);
+      const tracked = effectiveRecovery || (apiStatus.supportsPlanningProgress ? newPlanningRequest(text, promptToSend, checkResult.mergedContext, currentConversationId) : null);
       let response: Awaited<ReturnType<typeof sendChatMessage>>;
       if (tracked) {
         pendingPlanning.current = tracked;
@@ -528,7 +542,7 @@ export function useTravelApi() {
             setCurrentConversationId(progress.conversation_id);
             localStorage.setItem('TRAVELAI_CONVERSATION_ID', progress.conversation_id);
           }
-        }, controller.signal, Boolean(recovery));
+        }, controller.signal, Boolean(effectiveRecovery));
       } else response = await sendChatMessage(promptToSend, currentConversationId);
       
       // CRITICAL: Persist conversation_id so subsequent messages thread correctly
@@ -626,10 +640,21 @@ export function useTravelApi() {
     } catch (err: any) {
       if (err instanceof ProgressUnavailable) {
         setPlanningProgress(err.progress);
+        if (err.progress.recovery?.retryable === false && pendingPlanning.current) {
+          clearPendingPlanning(pendingPlanning.current.id);
+          pendingPlanning.current = null;
+        }
         if (err.progress.result?.travel_context) setTravelContext(mergeTravelContexts(checkResult.mergedContext, err.progress.result.travel_context, text));
         return { success: false, trip: null, error: err.message };
       }
-      if (err?.name === 'AbortError' && pendingPlanning.current) return { success: false, trip: null, error: 'Request monitoring stopped.' };
+      if (err?.name === 'AbortError') {
+        if (pendingPlanning.current) {
+          clearPendingPlanning(pendingPlanning.current.id);
+          pendingPlanning.current = null;
+        }
+        setPlanningProgress(null);
+        return { success: false, trip: null, error: 'Request monitoring stopped.' };
+      }
       if (pendingPlanning.current) {
         const error = 'The response could not be displayed. Check request status before sending again; your original details are preserved.';
         setPlanningProgress({ request_id: pendingPlanning.current.id, status: 'connection_lost', kind: 'request', stages: {}, error });

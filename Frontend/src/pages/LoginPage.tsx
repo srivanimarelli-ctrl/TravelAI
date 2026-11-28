@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, useAnimationControls, useReducedMotion } from 'motion/react';
 import { Compass, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useModalFocus } from '../hooks/useModalFocus';
 
 // A lightweight, independently authored staggered spring entrance using free Motion APIs.
 const loginSpring = { type: 'spring' as const, stiffness: 205, damping: 24, mass: 0.85 };
@@ -26,6 +25,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const reducedMotion = useReducedMotion();
   const entrance = useAnimationControls();
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('TRAVELAI_FASTAPI_URL');
+      if (stored && !/^https?:\/\/[^\s]+$/i.test(stored.trim())) {
+        localStorage.removeItem('TRAVELAI_FASTAPI_URL');
+      }
+    } catch {}
     if (reducedMotion) entrance.set('visible');
     else void entrance.start('visible');
     return () => entrance.stop();
@@ -43,10 +48,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const submitting = useRef(false);
-  const recoveryDialog = useRef<HTMLDivElement>(null);
-  useModalFocus(recoveryDialog, forgotModalOpen, () => setForgotModalOpen(false));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,18 +234,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-
-                {/* Forgot Password Link */}
-                <div className="flex justify-end pt-0.5">
-                  <button
-                    type="button"
-                    id="forgot-password-link"
-                    onClick={() => setForgotModalOpen(true)}
-                    className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
               </motion.div>
 
               {/* Sign In Button */}
@@ -306,14 +296,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
         </motion.div>
       </div>
-
-      {forgotModalOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-        <div ref={recoveryDialog} role="dialog" aria-modal="true" aria-labelledby="recovery-title" className="w-full max-w-sm p-6 rounded-2xl border border-white/10 bg-slate-900">
-          <h3 id="recovery-title" className="font-bold text-white mb-2">Password recovery</h3>
-          <p className="text-sm text-slate-300 mb-4">Email password recovery is not configured for this installation. Contact the project administrator to recover access.</p>
-          <button type="button" onClick={() => setForgotModalOpen(false)} className="px-4 py-2 rounded-lg bg-sky-200 text-slate-900">Close</button>
-        </div>
-      </div>}
     </div>
   );
 };

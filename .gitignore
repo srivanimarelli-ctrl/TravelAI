@@ -61,3 +61,9 @@ playwright-report/
 # SRS document generation artifacts (not project source code)
 docs/academic/__pycache__/
 docs/academic/*.pyc
+
+# Temporary scratch text & media dumps
+extracted_media/
+scratch_images/
+full_paragraphs.txt
+paragraph_dump.txt

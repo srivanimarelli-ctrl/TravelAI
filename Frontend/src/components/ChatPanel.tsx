@@ -337,11 +337,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                           Closed
                                         </span>
                                       )}
-                                      {place.opening_status === 'UNKNOWN' && (
-                                        <span className="px-1.5 py-0.5 rounded text-[10px] text-on-surface-variant bg-surface-container-highest/40">
-                                          Hours unverified
-                                        </span>
-                                      )}
+
                                     </div>
                                   </div>
                                   {place.source && (
